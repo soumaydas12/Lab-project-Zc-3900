@@ -42,6 +42,18 @@ void ZcAnalysis::Loop(TString savePath)
     // Histogram for the absolute momentum of all charged tracks
     TH1D* h1_pTracks = new TH1D("h1absMomentum", "Absolute momentum of charged tracks;|p| [GeV];Events / 0.025 GeV", 100, 0, 2.5);
 
+    TH1D* h1_eEMC = new TH1D(
+        "h1_eEMC",
+        "EMC energy of leptons;E_{EMC} [GeV];Events",
+        100, 0, 2.0
+        );
+
+    TH2D* h2_eEMC_vs_MUC = new TH2D(
+        "h2_eEMC_vs_MUC",
+        "E_{EMC} vs MUC depth;E_{EMC} [GeV];d_{MUC} [mm]",
+        100, 0, 2.0,
+        100, 0, 200
+    );
 
     //=============================================================================
     // For-loop over all events in the root file
@@ -65,6 +77,20 @@ void ZcAnalysis::Loop(TString savePath)
         {
             // Create a momentum-vector for each charged track
             P3 pTrack(dblTracksPx[i], dblTracksPy[i], dblTracksPz[i]);
+            
+            double p = pTrack.R();
+
+            // momentum cut to select leptons
+
+            if (p > 1.0)
+            {
+                double eEMC = dblTracksECal[i];
+                double dMUC = dblTracksMucDepth[i];
+
+                h1_eEMC->Fill(eEMC);
+                h2_eEMC_vs_MUC->Fill(eEMC, dMUC);
+            }
+
 
             // Fill the absolute momentum of all charged tracks in the histogram
             h1_pTracks->Fill(pTrack.R()); // R() gives the length of the vector
@@ -84,9 +110,20 @@ void ZcAnalysis::Loop(TString savePath)
     {
         TCanvas* canvas = new TCanvas(); // Create an empty canvas
 
-        h1_pTracks->Draw(); // Draw the histogram on the canvas
+
+        h1_eEMC->Draw();
+        canvas->SaveAs(savePath + "2_EEMC_leptons.png");
+    
+
+    {
+        TCanvas* canvas = new TCanvas();
+        h2_eEMC_vs_MUC->Draw("COLZ");
+        canvas->SaveAs(savePath + "3_EEMC_vs_MUC.png");
+    }
+
+        // h1_pTracks->Draw(); // Draw the histogram on the canvas
 
         // Save the canvas under the save path (set in the run.sh script)
-        canvas->SaveAs(savePath + "1_absoluteMomentum.png"); // You can use .png or .pdf or ...
+        // canvas->SaveAs(savePath + "1_absoluteMomentum.png"); // You can use .png or .pdf or ...
     }
 }
