@@ -41,7 +41,7 @@ void ZcAnalysis::Loop(TString savePath)
 
     // Histogram for the absolute momentum of all charged tracks
     TH1D* h1_pTracks = new TH1D("h1absMomentum", "Absolute momentum of charged tracks;|p| [GeV];Events / 0.025 GeV", 100, 0, 2.5);
-
+// problem 2.2
     TH1D* h1_eEMC = new TH1D(
         "h1_eEMC",
         "EMC energy of leptons;E_{EMC} [GeV];Events",
@@ -53,8 +53,42 @@ void ZcAnalysis::Loop(TString savePath)
         "E_{EMC} vs MUC depth;E_{EMC} [GeV];d_{MUC} [mm]",
         100, 0, 2.0,
         100, 0, 200
-    );
+       );
+       // problem 2.3
+TH1D* h1_EoverP_e = new TH1D(
+    "h1_EoverP_e",
+    "E/p for particles;E_{EMC}/|p_{MDC}|;Events",
+    100, 0, 2
+);
 
+TH1D* h1_EoverP_mu = new TH1D(
+    "h1_EoverP_mu",
+    "E/p for particles;E_{EMC}/|p_{MDC}|;Events",
+    100, 0, 2
+);
+
+TH1D* h1_EoverP_pi = new TH1D(
+    "h1_EoverP_pi",
+    "E/p for particles;E_{EMC}/|p_{MDC}|;Events",
+    100, 0, 2
+);
+// problem 3.0
+TH1D* h1_mJpsi_e = new TH1D(
+    "h1_mJpsi_e",
+    "J/#psi invariant mass (electron channel);M_{e^{+}e^{-}} [GeV];Events",
+    100, 2.9, 3.2
+);
+
+TH1D* h1_mJpsi_mu = new TH1D(
+    "h1_mJpsi_mu",
+    "J/#psi invariant mass (muon channel);M_{#mu^{+}#mu^{-}} [GeV];Events",
+    100, 2.9, 3.2
+);
+//Problem 2.4
+double m_pi = 0.13957;   // GeV
+double m_e  = 0.000511;  // GeV
+double m_mu = 0.10566;   // GeV
+int selectedEvents = 0;
     //=============================================================================
     // For-loop over all events in the root file
     //=============================================================================
@@ -71,13 +105,21 @@ void ZcAnalysis::Loop(TString savePath)
         //=============================================================================
         // Your selection for each event
         //=============================================================================
-
+// problem 2.4
+    // containers for particles in this event
+    std::vector<P4M> pi_plus;
+    std::vector<P4M> pi_minus;
+    std::vector<P4M> e_plus;
+    std::vector<P4M> e_minus;
+    std::vector<P4M> mu_plus;
+    std::vector<P4M> mu_minus;
+    
         // Loop over all charged tracks in the event (there are always 4 charged tracks: l+ l- pi+ pi-)
         for (int i = 0; i < 4; i++)
         {
             // Create a momentum-vector for each charged track
             P3 pTrack(dblTracksPx[i], dblTracksPy[i], dblTracksPz[i]);
-            
+          //problem 2.2  
             double p = pTrack.R();
 
             // momentum cut to select leptons
@@ -91,7 +133,95 @@ void ZcAnalysis::Loop(TString savePath)
                 h2_eEMC_vs_MUC->Fill(eEMC, dMUC);
             }
 
+// problem 2.3
+double Eemc = dblTracksECal[i];
 
+if (p > 0) {
+
+    double EoverP = Eemc / p;
+
+    // Identify particle type using highest probability
+    if (dblTracksProbElectron[i] > dblTracksProbMuon[i] &&
+        dblTracksProbElectron[i] > dblTracksProbPion[i])
+    {
+        h1_EoverP_e->Fill(EoverP);
+    }
+    else if (dblTracksProbMuon[i] > dblTracksProbElectron[i] &&
+             dblTracksProbMuon[i] > dblTracksProbPion[i])
+    {
+        h1_EoverP_mu->Fill(EoverP);
+    }
+    else if (dblTracksProbPion[i] > dblTracksProbElectron[i] &&
+             dblTracksProbPion[i] > dblTracksProbMuon[i])
+    {
+        h1_EoverP_pi->Fill(EoverP);
+    }
+    // problem 2.4
+    double px = dblTracksPx[i];
+double py = dblTracksPy[i];
+double pz = dblTracksPz[i];
+
+double charge = dblTracksCharge[i];
+
+double p = pTrack.R();
+double Eemc = dblTracksECal[i];
+// identify leptons vs pions
+if (p < 1.0)  // pion
+{
+    P4M pion(px, py, pz, m_pi);
+
+    if (charge > 0)
+        pi_plus.push_back(pion);
+    else
+        pi_minus.push_back(pion);
+}
+else
+{
+    // leptons
+    if (EoverP > 0.8)   // electron
+    {
+        P4M electron(px, py, pz, m_e);
+
+        if (charge > 0)
+            e_plus.push_back(electron);
+        else
+            e_minus.push_back(electron);
+    }
+    else                // muon
+    {
+        P4M muon(px, py, pz, m_mu);
+
+        if (charge > 0)
+            mu_plus.push_back(muon);
+        else
+            mu_minus.push_back(muon);
+    }
+}
+bool electronEvent =
+    (pi_plus.size()==1 && pi_minus.size()==1 &&
+     e_plus.size()==1 && e_minus.size()==1);
+
+bool muonEvent =
+    (pi_plus.size()==1 && pi_minus.size()==1 &&
+     mu_plus.size()==1 && mu_minus.size()==1);
+
+if (!(electronEvent || muonEvent))
+    continue;
+    selectedEvents++;
+    // // problem 3.0
+    if (electronEvent)
+{
+    P4M Jpsi = e_plus[0] + e_minus[0];
+    h1_mJpsi_e->Fill(Jpsi.M());
+}
+
+if (muonEvent)
+{
+    P4M Jpsi = mu_plus[0] + mu_minus[0];
+    h1_mJpsi_mu->Fill(Jpsi.M());
+}}
+    
+    
             // Fill the absolute momentum of all charged tracks in the histogram
             h1_pTracks->Fill(pTrack.R()); // R() gives the length of the vector
         }
@@ -100,6 +230,9 @@ void ZcAnalysis::Loop(TString savePath)
         // End of selection
         //=============================================================================
     }
+    // problem 2.4
+    std::cout << "Total events: " << nentries << std::endl;
+    std::cout << "Selected events: " << selectedEvents << std::endl;
 
 
     //=============================================================================
@@ -107,20 +240,51 @@ void ZcAnalysis::Loop(TString savePath)
     //=============================================================================
 
     // Absolute momentum of all charged tracks
+    // problem 2.2
     {
         TCanvas* canvas = new TCanvas(); // Create an empty canvas
 
 
         h1_eEMC->Draw();
         canvas->SaveAs(savePath + "2_EEMC_leptons.png");
-    
 
     {
         TCanvas* canvas = new TCanvas();
         h2_eEMC_vs_MUC->Draw("COLZ");
         canvas->SaveAs(savePath + "3_EEMC_vs_MUC.png");
     }
+    // problem 2.3
+{
+    TCanvas* canvas = new TCanvas();
 
+    h1_EoverP_e->SetLineColor(kRed);
+    h1_EoverP_mu->SetLineColor(kBlue);
+    h1_EoverP_pi->SetLineColor(kGreen+2);
+
+    h1_EoverP_e->Draw();
+    h1_EoverP_mu->Draw("SAME");
+    h1_EoverP_pi->Draw("SAME");
+
+    TLegend* legend = new TLegend(0.7,0.7,0.9,0.9);
+    legend->AddEntry(h1_EoverP_e,"Electrons","l");
+    legend->AddEntry(h1_EoverP_mu,"Muons","l");
+    legend->AddEntry(h1_EoverP_pi,"Pions","l");
+    legend->Draw();
+
+    canvas->SaveAs(savePath + "4_EoverP_particles.png");
+}
+// problem 3.0
+{
+    TCanvas* canvas = new TCanvas();
+    h1_mJpsi_e->Draw();
+    canvas->SaveAs(savePath + "5_Jpsi_mass_electron.png");
+}
+
+{
+    TCanvas* canvas = new TCanvas();
+    h1_mJpsi_mu->Draw();
+    canvas->SaveAs(savePath + "6_Jpsi_mass_muon.png");
+}
         // h1_pTracks->Draw(); // Draw the histogram on the canvas
 
         // Save the canvas under the save path (set in the run.sh script)
