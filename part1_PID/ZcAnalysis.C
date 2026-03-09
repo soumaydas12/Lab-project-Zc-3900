@@ -34,7 +34,7 @@ void ZcAnalysis::Loop(TString savePath)
 
 
     //=============================================================================
-    // All histogram definitions should be placed here
+    // All histogram definitions should be placed here:
     // 1D parameters are: ("uniqueName", "title;x-axis-label;y-axis-label", bins, min, max)
     // 2D parameters are: ("uniqueName", "title;x-axis-label;y-axis-label;z-axis-label", x-bins, x-min, x-max, y-bins, y-min, y-max)
     //=============================================================================
