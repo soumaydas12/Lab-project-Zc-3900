@@ -26,6 +26,11 @@ using ROOT::Math::VectorUtil::CosTheta; // angle between two four-vectors
 // 3. All histograms are plotted on a canvas and saved
 //=============================================================================
 
+// decide which graphs should be plotted
+bool task_2_1 = false;
+bool task_2_2 = false;
+bool task_2_3 = true;
+
 void ZcAnalysis::Loop(TString savePath)
 {
     // Some settings
@@ -39,21 +44,52 @@ void ZcAnalysis::Loop(TString savePath)
     // 2D parameters are: ("uniqueName", "title;x-axis-label;y-axis-label;z-axis-label", x-bins, x-min, x-max, y-bins, y-min, y-max)
     //=============================================================================
 
-    // Histogram for the absolute momentum of all charged tracks
-    TH1D* h1_pTracks = new TH1D("h1absMomentum", "Absolute momentum of charged tracks;|p| [GeV];Events / 0.025 GeV", 100, 0, 2.5);
+    TH1D* h1_pTracks = nullptr;
+    TH1D* h2_eEMC = nullptr;
+    TH2D* h3_eEMC_vs_MUC = nullptr;
+    TH1D* h4_eEMC_over_pMDC_e = nullptr;
+    TH1D* h4_eEMC_over_pMDC_mu = nullptr;
+    TH1D* h4_eEMC_over_pMDC_pi = nullptr;
 
-    TH1D* h1_eEMC = new TH1D(
-        "h1_eEMC",
+    // TASK 2.1: Histogram for the absolute momentum of all charged tracks
+    if (task_2_1) {
+        h1_pTracks = new TH1D("h1absMomentum", "Absolute momentum of charged tracks;|p| [GeV];Events / 0.025 GeV", 100, 0, 2.5);
+    }
+
+    // TASK 2.2
+    if (task_2_2) {
+        h2_eEMC = new TH1D(
+        "h2_eEMC",
         "EMC energy of leptons;E_{EMC} [GeV];Events",
         100, 0, 2.0
         );
-
-    TH2D* h2_eEMC_vs_MUC = new TH2D(
-        "h2_eEMC_vs_MUC",
+        h3_eEMC_vs_MUC = new TH2D(
+        "h3_eEMC_vs_MUC",
         "E_{EMC} vs MUC depth;E_{EMC} [GeV];d_{MUC} [mm]",
         100, 0, 2.0,
         100, 0, 200
     );
+    }
+
+    // TASK 2.3
+    if (task_2_3) {
+        h4_eEMC_over_pMDC_e = new TH1D(
+        "h4_eEMC_over_pMDC_e",
+        "eEMC/pMDC ratio;E_{EMC};Events",
+        100, 0, 2.0
+        );
+        h4_eEMC_over_pMDC_mu = new TH1D(
+        "h4_eEMC_over_pMDC_mu",
+        "eEMC/pMDC ratio;E_{EMC};Events",
+        100, 0, 2.0
+        );
+        h4_eEMC_over_pMDC_pi = new TH1D(
+        "h4_eEMC_over_pMDC_pi",
+        "eEMC/pMDC ratio;E_{EMC};Events",
+        100, 0, 2.0
+        );
+    }
+
 
     //=============================================================================
     // For-loop over all events in the root file
@@ -80,20 +116,47 @@ void ZcAnalysis::Loop(TString savePath)
             
             double p = pTrack.R();
 
-            // momentum cut to select leptons
-
-            if (p > 1.0)
-            {
-                double eEMC = dblTracksECal[i];
-                double dMUC = dblTracksMucDepth[i];
-
-                h1_eEMC->Fill(eEMC);
-                h2_eEMC_vs_MUC->Fill(eEMC, dMUC);
+            // TASK 2.1
+            if (task_2_1) {
+                // Fill the absolute momentum of all charged tracks in the histogram
+                h1_pTracks->Fill(p); // R() gives the length of the vector
             }
 
+            // TASK 2.2
+            if (task_2_2) {
+                // momentum cut to select leptons
+                if (p > 1.0)
+                {
+                    double eEMC = dblTracksECal[i];
+                    double dMUC = dblTracksMucDepth[i];
 
-            // Fill the absolute momentum of all charged tracks in the histogram
-            h1_pTracks->Fill(pTrack.R()); // R() gives the length of the vector
+                    h2_eEMC->Fill(eEMC);
+                    h3_eEMC_vs_MUC->Fill(eEMC, dMUC);
+                }
+            }
+
+            // TASK 2.3
+            if (task_2_3) {
+                double eEMC = dblTracksECal[i];
+                double eEMC_over_p = eEMC / p;
+
+                // differentiate between particles
+                if (dblTracksProbElectron[i] > dblTracksProbMuon[i] &&
+                    dblTracksProbElectron[i] > dblTracksProbPion[i])
+                {
+                    h4_eEMC_over_pMDC_e->Fill(eEMC_over_p);
+                }
+                else if (dblTracksProbMuon[i] > dblTracksProbElectron[i] &&
+                        dblTracksProbMuon[i] > dblTracksProbPion[i])
+                {
+                    h4_eEMC_over_pMDC_mu->Fill(eEMC_over_p);
+                }
+                else if (dblTracksProbPion[i] > dblTracksProbElectron[i] &&
+                        dblTracksProbPion[i] > dblTracksProbMuon[i])
+                {
+                    h4_eEMC_over_pMDC_pi->Fill(eEMC_over_p);
+                }
+            }
         }
 
         //=============================================================================
@@ -106,24 +169,40 @@ void ZcAnalysis::Loop(TString savePath)
     // All canvas definitions should be placed here
     //=============================================================================
 
-    // Absolute momentum of all charged tracks
-    {
+    // TASK 2.1: Absolute momentum of all charged tracks
+    if (task_2_1) {
         TCanvas* canvas = new TCanvas(); // Create an empty canvas
-
-
-        h1_eEMC->Draw();
-        canvas->SaveAs(savePath + "2_EEMC_leptons.png");
-    
-
-    {
-        TCanvas* canvas = new TCanvas();
-        h2_eEMC_vs_MUC->Draw("COLZ");
-        canvas->SaveAs(savePath + "3_EEMC_vs_MUC.png");
+        h1_pTracks->Draw(); // Draw the histogram on the canvas
+        // Save the canvas under the save path (set in the run.sh script)
+        canvas->SaveAs(savePath + "1_absoluteMomentum.png"); // You can use .png or .pdf or ...
     }
 
-        // h1_pTracks->Draw(); // Draw the histogram on the canvas
+    // TASK 2.2
+    if (task_2_2) {
+        {
+        TCanvas* canvas = new TCanvas();
+        h2_eEMC->Draw();
+        canvas->SaveAs(savePath + "2_EEMC_leptons.png");
+        }
+        {
+        TCanvas* canvas = new TCanvas();
+        h3_eEMC_vs_MUC->Draw("COLZ");
+        canvas->SaveAs(savePath + "3_EEMC_vs_MUC.png");
+        }
+    }
 
-        // Save the canvas under the save path (set in the run.sh script)
-        // canvas->SaveAs(savePath + "1_absoluteMomentum.png"); // You can use .png or .pdf or ...
+    // TASK 2.3
+    if (task_2_3) {
+        TCanvas* canvas = new TCanvas();
+
+        h4_eEMC_over_pMDC_e->SetLineColor(kRed);
+        h4_eEMC_over_pMDC_mu->SetLineColor(kBlue);
+        h4_eEMC_over_pMDC_pi->SetLineColor(kGreen+2);
+
+        h4_eEMC_over_pMDC_e->Draw();
+        h4_eEMC_over_pMDC_mu->Draw("SAME");
+        h4_eEMC_over_pMDC_pi->Draw("SAME");
+
+        canvas->SaveAs(savePath + "4_EEMC_over_PMUC.png"); 
     }
 }
