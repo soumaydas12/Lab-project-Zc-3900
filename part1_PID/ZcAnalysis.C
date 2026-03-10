@@ -30,7 +30,7 @@ void ZcAnalysis::Loop(TString savePath)
 {
     // Some settings
     gROOT->SetBatch(true); // no graphical output during execution
-    // gStyle->SetOptStat(0); // no statistics box on histograms
+    gStyle->SetOptStat(0); // no statistics box on histograms
 
 
     //=============================================================================
@@ -84,10 +84,31 @@ TH1D* h1_mJpsi_mu = new TH1D(
     "J/#psi invariant mass (muon channel);M_{#mu^{+}#mu^{-}} [GeV];Events",
     100, 2.9, 3.2
 );
+// problem 3.3
+TH1D* h1_mJpsi_recoil = new TH1D(
+    "h1_mJpsi_recoil",
+    "J/#psi mass from #pi^{+}#pi^{-} recoil;M_{recoil}(#pi^{+}#pi^{-}) [GeV];Events",
+    100, 2.9, 3.2
+);
 //Problem 2.4
 double m_pi = 0.13957;   // GeV
 double m_e  = 0.000511;  // GeV
 double m_mu = 0.10566;   // GeV
+// problem 3.3
+double sqrt_s = 4.25797;
+double theta  = 0.011;
+double me_beam = 0.000511;
+
+// beam energy and momentum
+double Ei = sqrt((sqrt_s*sqrt_s - 4*me_beam*me_beam*sin(theta)*sin(theta))) / (2*cos(theta));
+double pi = sqrt(Ei*Ei - me_beam*me_beam);
+
+// beam four-vectors
+P4E pe_plus(  pi*sin(theta), 0,  pi*cos(theta), Ei );
+P4E pe_minus( -pi*sin(theta),0, -pi*cos(theta), Ei );
+
+// center-of-mass four-vector
+P4E pCMS = pe_plus + pe_minus;
 int selectedEvents = 0;
     //=============================================================================
     // For-loop over all events in the root file
@@ -121,14 +142,13 @@ int selectedEvents = 0;
             P3 pTrack(dblTracksPx[i], dblTracksPy[i], dblTracksPz[i]);
           //problem 2.2  
             double p = pTrack.R();
-
+            double eEMC = dblTracksECal[i];
+            double dMUC = dblTracksMucDepth[i];
             // momentum cut to select leptons
 
             if (p > 1.0)
             {
-                double eEMC = dblTracksECal[i];
-                double dMUC = dblTracksMucDepth[i];
-
+                
                 h1_eEMC->Fill(eEMC);
                 h2_eEMC_vs_MUC->Fill(eEMC, dMUC);
             }
@@ -140,31 +160,34 @@ if (p > 0) {
 
     double EoverP = Eemc / p;
 
-    // Identify particle type using highest probability
-    if (dblTracksProbElectron[i] > dblTracksProbMuon[i] &&
-        dblTracksProbElectron[i] > dblTracksProbPion[i])
-    {
-        h1_EoverP_e->Fill(EoverP);
-    }
-    else if (dblTracksProbMuon[i] > dblTracksProbElectron[i] &&
-             dblTracksProbMuon[i] > dblTracksProbPion[i])
-    {
-        h1_EoverP_mu->Fill(EoverP);
-    }
-    else if (dblTracksProbPion[i] > dblTracksProbElectron[i] &&
-             dblTracksProbPion[i] > dblTracksProbMuon[i])
-    {
-        h1_EoverP_pi->Fill(EoverP);
-    }
+    
+    // PID using detector information
+
+// electrons: large E/p
+if (EoverP > 0.8)
+{
+    h1_EoverP_e->Fill(EoverP);
+}
+
+// muons: penetrate deeply into MUC
+else if (dMUC > 40)
+{
+    h1_EoverP_mu->Fill(EoverP);
+}
+
+// pions: hadrons, small MUC penetration
+else
+{
+    h1_EoverP_pi->Fill(EoverP);
+}
     // problem 2.4
-    double px = dblTracksPx[i];
+double px = dblTracksPx[i];
 double py = dblTracksPy[i];
 double pz = dblTracksPz[i];
 
 double charge = dblTracksCharge[i];
 
-double p = pTrack.R();
-double Eemc = dblTracksECal[i];
+
 // identify leptons vs pions
 if (p < 1.0)  // pion
 {
@@ -177,7 +200,6 @@ if (p < 1.0)  // pion
 }
 else
 {
-    // leptons
     if (EoverP > 0.8)   // electron
     {
         P4M electron(px, py, pz, m_e);
@@ -187,7 +209,7 @@ else
         else
             e_minus.push_back(electron);
     }
-    else                // muon
+    else if (dblTracksMucDepth[i] > 40)   // muon
     {
         P4M muon(px, py, pz, m_mu);
 
@@ -196,7 +218,19 @@ else
         else
             mu_minus.push_back(muon);
     }
+    else
+    {
+        P4M pion(px, py, pz, m_pi);
+
+        if (charge > 0)
+            pi_plus.push_back(pion);
+        else
+            pi_minus.push_back(pion);
+    }
 }
+     // Fill the absolute momentum of all charged tracks in the histogram
+            h1_pTracks->Fill(pTrack.R()); // R() gives the length of the vector
+        }
 bool electronEvent =
     (pi_plus.size()==1 && pi_minus.size()==1 &&
      e_plus.size()==1 && e_minus.size()==1);
@@ -204,7 +238,16 @@ bool electronEvent =
 bool muonEvent =
     (pi_plus.size()==1 && pi_minus.size()==1 &&
      mu_plus.size()==1 && mu_minus.size()==1);
+// problem 3.3
+// reconstruct J/psi from pion recoil
+if (pi_plus.size()==1 && pi_minus.size()==1)
+{
+    P4M pions = pi_plus[0] + pi_minus[0];
 
+    P4E pJpsi_recoil = pCMS - pions;
+
+    h1_mJpsi_recoil->Fill(pJpsi_recoil.M());
+}
 if (!(electronEvent || muonEvent))
     continue;
     selectedEvents++;
@@ -219,13 +262,8 @@ if (muonEvent)
 {
     P4M Jpsi = mu_plus[0] + mu_minus[0];
     h1_mJpsi_mu->Fill(Jpsi.M());
-}}
-    
-    
-            // Fill the absolute momentum of all charged tracks in the histogram
-            h1_pTracks->Fill(pTrack.R()); // R() gives the length of the vector
-        }
-
+} // end of muon loop
+} // end of event loop
         //=============================================================================
         // End of selection
         //=============================================================================
@@ -375,6 +413,57 @@ g2->SetLineStyle(2);
 g2->Draw("same");
 
     canvas->SaveAs(savePath + "6_Jpsi_mass_muon_doubleFit.png");
+}
+// problem 3.3
+{
+    TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
+    canvas->SetLeftMargin(0.15);
+
+    double binWidth = h1_mJpsi_recoil->GetBinWidth(1);
+    h1_mJpsi_recoil->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
+    h1_mJpsi_recoil->Draw();
+
+    TF1* ffit_gaus = new TF1("ffit_gaus","gaus",2.95,3.15);
+
+    ffit_gaus->SetParameters(
+        20000,   // amplitude
+        3.097,   // mean
+        0.01     // sigma
+    );
+
+    h1_mJpsi_recoil->Fit(ffit_gaus,"R");
+
+    canvas->SaveAs(savePath + "Jpsi_recoil_gaussian_fit.png");
+}
+{
+    TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
+    canvas->SetLeftMargin(0.15);
+
+    h1_mJpsi_recoil->Draw();
+    double binWidth = h1_mJpsi_recoil->GetBinWidth(1);
+    double norm = h1_mJpsi_recoil->GetMaximum();
+
+TF1* ffit_voigt = new TF1(
+    "ffit_voigt",
+    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f", binWidth),
+    2.95,
+    3.15
+);
+
+ffit_voigt->SetParameters(
+    norm,     // normalization
+    3.097,    // mean
+    0.01,     // sigma (detector resolution)
+    0.0001    // gamma (natural width)
+);
+
+ffit_voigt->SetLineColor(kRed);
+ffit_voigt->SetLineWidth(2);
+
+h1_mJpsi_recoil->Fit(ffit_voigt,"R");
+
+    canvas->SaveAs(savePath + "Jpsi_recoil_voigt_fit.png");
 }
         // h1_pTracks->Draw(); // Draw the histogram on the canvas
 
