@@ -275,15 +275,93 @@ if (muonEvent)
 }
 // problem 3.0
 {
-    TCanvas* canvas = new TCanvas();
+   TCanvas* canvas = new TCanvas();
     h1_mJpsi_e->Draw();
-    canvas->SaveAs(savePath + "5_Jpsi_mass_electron.png");
+    // problem 3.2
+    TF1* ffit = new TF1("ffit","crystalball",2.9,3.2);
+
+    // good initial parameters
+    ffit->SetParameters(
+        20000,   // normalization
+        3.097,   // mean
+        0.02,    // sigma
+        1.5,     // alpha
+        2.0      // n
+    );
+
+    h1_mJpsi_e->Fit(ffit,"R");
+
+    canvas->SaveAs(savePath + "Jpsi_mass_electron_CB.png");
+
 }
 
+//problem 3.1
+//{
+    //TCanvas* canvas = new TCanvas();
+
+    //h1_mJpsi_mu->Draw();
+
+    //TF1* ffit = new TF1("ffit","gaus",2.9,3.2);
+    //ffit->SetParameters(100,3.097,0.02);
+
+    //h1_mJpsi_mu->Fit(ffit,"R");
+
+    //canvas->SaveAs(savePath + "6_Jpsi_mass_muon_fit.png");
+//}
+// problem 3.1
 {
     TCanvas* canvas = new TCanvas();
+
     h1_mJpsi_mu->Draw();
-    canvas->SaveAs(savePath + "6_Jpsi_mass_muon.png");
+
+    TF1* ffit = new TF1(
+    "ffit",
+    "[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + [3]*exp(-(x-[1])*(x-[1])/(2*[4]*[4]))",
+    2.9,3.2);
+    
+
+    ffit->SetParameters(
+    20000,   // amplitude narrow
+    3.097,   // mean
+    0.01,    // narrow sigma
+    5000,    // amplitude broad
+    0.04     // broad sigma
+    );
+
+    h1_mJpsi_mu->Fit(ffit,"R");
+
+    // Narrow component
+TF1* g1 = new TF1(
+"g1",
+"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2]))",
+2.9,3.2);
+
+g1->SetParameters(
+ffit->GetParameter(0),
+ffit->GetParameter(1),
+ffit->GetParameter(2));
+
+g1->SetLineColor(kGreen);
+g1->SetLineStyle(2);
+g1->Draw("same");
+
+
+// Broad component
+TF1* g2 = new TF1(
+"g2",
+"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2]))",
+2.9,3.2);
+
+g2->SetParameters(
+ffit->GetParameter(3),
+ffit->GetParameter(1),
+ffit->GetParameter(4));
+
+g2->SetLineColor(kMagenta);
+g2->SetLineStyle(2);
+g2->Draw("same");
+
+    canvas->SaveAs(savePath + "6_Jpsi_mass_muon_doubleFit.png");
 }
         // h1_pTracks->Draw(); // Draw the histogram on the canvas
 
