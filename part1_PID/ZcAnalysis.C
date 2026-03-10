@@ -27,9 +27,10 @@ using ROOT::Math::VectorUtil::CosTheta; // angle between two four-vectors
 //=============================================================================
 
 // decide which graphs should be plotted
-bool task_2_1 = false;
-bool task_2_2 = false;
+bool task_2_1 = true;
+bool task_2_2 = true;
 bool task_2_3 = true;
+bool task_3 = true;
 
 void ZcAnalysis::Loop(TString savePath)
 {
@@ -44,12 +45,23 @@ void ZcAnalysis::Loop(TString savePath)
     // 2D parameters are: ("uniqueName", "title;x-axis-label;y-axis-label;z-axis-label", x-bins, x-min, x-max, y-bins, y-min, y-max)
     //=============================================================================
 
+    // TASK 2.1
     TH1D* h1_pTracks = nullptr;
+    // TASK 2.2
     TH1D* h2_eEMC = nullptr;
     TH2D* h3_eEMC_vs_MUC = nullptr;
+    // TASK 2.3
     TH1D* h4_eEMC_over_pMDC_e = nullptr;
     TH1D* h4_eEMC_over_pMDC_mu = nullptr;
     TH1D* h4_eEMC_over_pMDC_pi = nullptr;
+    // TASK 3
+    TH1D* h5_jpsi_mass_electron = nullptr;
+    TH1D* h6_jpsi_mass_muon = nullptr;
+
+    // PDG masses in GeV/c^2
+    const double electron_mass = 0.000510998946;
+    const double muon_mass = 0.1056583745;
+    const double pion_mass = 0.13957039;
 
     // TASK 2.1: Histogram for the absolute momentum of all charged tracks
     if (task_2_1) {
@@ -60,12 +72,12 @@ void ZcAnalysis::Loop(TString savePath)
     if (task_2_2) {
         h2_eEMC = new TH1D(
         "h2_eEMC",
-        "EMC energy of leptons;E_{EMC} [GeV];Events",
+        "E_{EMC} of leptons;E_{EMC} [GeV];Events",
         100, 0, 2.0
         );
         h3_eEMC_vs_MUC = new TH2D(
         "h3_eEMC_vs_MUC",
-        "E_{EMC} vs MUC depth;E_{EMC} [GeV];d_{MUC} [mm]",
+        "E_{EMC} vs d_{MUC};E_{EMC} [GeV];d_{MUC} [mm]",
         100, 0, 2.0,
         100, 0, 200
     );
@@ -75,18 +87,31 @@ void ZcAnalysis::Loop(TString savePath)
     if (task_2_3) {
         h4_eEMC_over_pMDC_e = new TH1D(
         "h4_eEMC_over_pMDC_e",
-        "eEMC/pMDC ratio;E_{EMC};Events",
+        "E_{EMC}/p_{MDC} ratio;E_{EMC}/p_{MDC};Events",
         100, 0, 2.0
         );
         h4_eEMC_over_pMDC_mu = new TH1D(
         "h4_eEMC_over_pMDC_mu",
-        "eEMC/pMDC ratio;E_{EMC};Events",
+        "E_{EMC}/p_{MDC} ratio;E_{EMC}/p_{MDC};Events",
         100, 0, 2.0
         );
         h4_eEMC_over_pMDC_pi = new TH1D(
         "h4_eEMC_over_pMDC_pi",
-        "eEMC/pMDC ratio;E_{EMC};Events",
+        "E_{EMC}/p_{MDC} ratio;E_{EMC}/p_{MDC};Events",
         100, 0, 2.0
+        );
+    }
+
+    if (task_3) {
+        h5_jpsi_mass_electron = new TH1D(
+            "h_jpsi_mass_electron",
+            "J/\\psi invariant mass (e^{+}e^{-});M_{J/\\psi} [GeV];Events",
+            150, 2.9, 3.2
+        );
+        h6_jpsi_mass_muon = new TH1D(
+            "h_jpsi_mass_muon",
+            "J/\\psi invariant mass (\\mu^{+}\\mu^{-});M_{J/\\psi} [GeV];Events",
+            150, 2.9, 3.2
         );
     }
 
@@ -107,6 +132,18 @@ void ZcAnalysis::Loop(TString savePath)
         //=============================================================================
         // Your selection for each event
         //=============================================================================
+
+        // Declare four-vectors for the six-particles
+        // pions
+        P4M pion_plus, pion_minus;
+        // leptons
+        P4M e_plus, e_minus;
+        P4M mu_plus, mu_minus;
+
+        // Skip events that don't have exactly 2 pions and 2 leptons of the same family
+        if (intNumberPions != 2) continue;
+        if (!((intNumberElectrons == 2 && intNumberMuons == 0) || 
+            (intNumberElectrons == 0 && intNumberMuons == 2))) continue;
 
         // Loop over all charged tracks in the event (there are always 4 charged tracks: l+ l- pi+ pi-)
         for (int i = 0; i < 4; i++)
@@ -157,6 +194,27 @@ void ZcAnalysis::Loop(TString savePath)
                     h4_eEMC_over_pMDC_pi->Fill(eEMC_over_p);
                 }
             }
+
+            // TASK 2.4
+            // Create four-vectors with measured momentum from MDC and PDG masses
+            pion_plus = P4M(dblTracksPx[2], dblTracksPy[2], dblTracksPz[2], pion_mass);
+            pion_minus = P4M(dblTracksPx[3], dblTracksPy[3], dblTracksPz[3], pion_mass);
+            e_plus = P4M(dblTracksPx[0], dblTracksPy[0], dblTracksPz[0], electron_mass);
+            e_minus = P4M(dblTracksPx[1], dblTracksPy[1], dblTracksPz[1], electron_mass);
+            mu_plus = P4M(dblTracksPx[0], dblTracksPy[0], dblTracksPz[0], muon_mass);
+            mu_minus = P4M(dblTracksPx[1], dblTracksPy[1], dblTracksPz[1], muon_mass);
+
+            // TASK 3
+            // Create J/Psi four-vectors by adding lepton pairs
+            if (intNumberElectrons == 2 && intNumberMuons == 0) {
+                P4M jpsi_electron = e_plus + e_minus;
+                h5_jpsi_mass_electron->Fill(jpsi_electron.M());
+            }
+            else if (intNumberElectrons == 0 && intNumberMuons == 2) {
+                P4M jpsi_muon = mu_plus + mu_minus;
+                h6_jpsi_mass_muon->Fill(jpsi_muon.M());
+            }
+
         }
 
         //=============================================================================
@@ -204,5 +262,47 @@ void ZcAnalysis::Loop(TString savePath)
         h4_eEMC_over_pMDC_pi->Draw("SAME");
 
         canvas->SaveAs(savePath + "4_EEMC_over_PMUC.png"); 
+    }
+
+    // TASK 3
+    if (task_3) {
+        // Plot J/Psi invariant mass for electrons
+        {
+            TCanvas* canvas = new TCanvas();
+            h5_jpsi_mass_electron->Draw();
+            canvas->SaveAs(savePath + "5_jpsi_mass_electron.png");
+        }
+
+        // Plot J/Psi invariant mass for muons
+        {
+            TCanvas* canvas = new TCanvas();
+
+            // double–Gaussian fit: parameters are
+            // [0] = scale 1, [1] = mean1,  [2] = sigma1  (narrow peak)
+            // [3] = scale 2, [4] = mean2,  [5] = sigma2  (broader component)
+            TF1 *f_fit = new TF1("f_fit",
+                "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[4],[5])",
+                2.9, 3.2);
+
+            // set reasonable starting values: mass ≃3.097, narrow width few MeV,
+            // broader width maybe a few × larger
+            f_fit->SetParameters(1000, 3.097, 0.005,   200, 3.097, 0.020);
+
+            // optionally fix the second mean equal to the first if desired:
+            // f_fit->FixParameter(4,3.097);
+
+            h6_jpsi_mass_muon->Draw();
+
+            h6_jpsi_mass_muon->Fit(f_fit, "R");    // “R” keeps the fit inside [2.9,3.2]
+
+            canvas->SaveAs(savePath + "6_jpsi_mass_muon.png");
+
+            // read out the narrow Gaussian's parameters
+            double jpsi_mass  = f_fit->GetParameter(1); // mean of first (narrow) Gaussian
+            double jpsi_width = f_fit->GetParameter(2); // sigma of first Gaussian
+
+            printf("J/psi mass = %.6f GeV, width = %.6f GeV\n",
+                jpsi_mass, jpsi_width);
+        }
     }
 }
