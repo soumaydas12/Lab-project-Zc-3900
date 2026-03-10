@@ -244,6 +244,8 @@ if (muonEvent)
     {
         TCanvas* canvas = new TCanvas(); // Create an empty canvas
 
+        double binWidth =  h1_eEMC->GetBinWidth(1);
+        h1_eEMC->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
 
         h1_eEMC->Draw();
         canvas->SaveAs(savePath + "2_EEMC_leptons.png");
@@ -255,7 +257,11 @@ if (muonEvent)
     }
     // problem 2.3
 {
-    TCanvas* canvas = new TCanvas();
+    TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
+    
+    double binWidth =  h1_EoverP_e->GetBinWidth(1);
+    h1_EoverP_e->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+    
 
     h1_EoverP_e->SetLineColor(kRed);
     h1_EoverP_mu->SetLineColor(kBlue);
@@ -275,7 +281,11 @@ if (muonEvent)
 }
 // problem 3.0
 {
-   TCanvas* canvas = new TCanvas();
+   TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
+    canvas->SetLeftMargin(0.15);
+    double binWidth = h1_mJpsi_e->GetBinWidth(1);
+    h1_mJpsi_e->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
     h1_mJpsi_e->Draw();
     // problem 3.2
     TF1* ffit = new TF1("ffit","crystalball",2.9,3.2);
@@ -310,7 +320,10 @@ if (muonEvent)
 //}
 // problem 3.1
 {
-    TCanvas* canvas = new TCanvas();
+    TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
+    canvas->SetLeftMargin(0.15);
+    double binWidth = h1_mJpsi_mu->GetBinWidth(1);
+    h1_mJpsi_mu->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
 
     h1_mJpsi_mu->Draw();
 
