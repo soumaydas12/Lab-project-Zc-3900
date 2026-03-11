@@ -119,10 +119,10 @@ TH1D* h1_mass_recoil = new TH1D(
 );
 // problem 3.6
 TH2D* h2_dalitz = new TH2D(
-    "h2_dalitz",
-    "Dalitz plot; m^{2}_{J/#psi #pi} [GeV^{2}]; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]",
-    200, 0, 20,
-    200, 0, 4
+"h2_dalitz",
+"Dalitz plot; m^{2}_{J/#psi #pi} [GeV^{2}]; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]",
+300,0,20,
+300,0,4
 );
 //Problem 2.4
 double m_pi = 0.13957;   // GeV
