@@ -32,6 +32,9 @@ void ZcAnalysis::Loop(TString savePath)
     gROOT->SetBatch(true); // no graphical output during execution
     gStyle->SetOptStat(0); // no statistics box on histograms
 
+    gStyle->SetStatX(0.3);
+    gStyle->SetStatY(0.9);
+
 
     //=============================================================================
     // All histogram definitions should be placed here:
@@ -90,6 +93,37 @@ TH1D* h1_mJpsi_recoil = new TH1D(
     "J/#psi mass from #pi^{+}#pi^{-} recoil;M_{recoil}(#pi^{+}#pi^{-}) [GeV];Events",
     100, 2.9, 3.2
 );
+// problem 3.5
+TH1D* h1_mass_ee = new TH1D(
+    "h1_mass_ee",
+    "Invariant mass spectra;Mass [GeV];Events",
+    200,0,4
+);
+
+TH1D* h1_mass_mumu = new TH1D(
+    "h1_mass_mumu",
+    "Invariant mass spectra;Mass [GeV];Events",
+    200,0,4
+);
+
+TH1D* h1_mass_pipi = new TH1D(
+    "h1_mass_pipi",
+    "Invariant mass spectra;Mass [GeV];Events",
+    200,0,4
+);
+
+TH1D* h1_mass_recoil = new TH1D(
+    "h1_mass_recoil",
+    "Invariant mass spectra;Mass [GeV];Events",
+    200,0,4
+);
+// problem 3.6
+TH2D* h2_dalitz = new TH2D(
+    "h2_dalitz",
+    "Dalitz plot; m^{2}_{J/#psi #pi} [GeV^{2}]; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]",
+    200, 0, 20,
+    200, 0, 4
+);
 //Problem 2.4
 double m_pi = 0.13957;   // GeV
 double m_e  = 0.000511;  // GeV
@@ -117,7 +151,7 @@ int selectedEvents = 0;
     if (fChain == 0) return;
     Long64_t nentries = fChain->GetEntriesFast();
     Long64_t nbytes = 0, nb = 0;
-    for (Long64_t jentry = 0; jentry < nentries; jentry++)
+    for (Long64_t jentry = 0; jentry < nentries; jentry++) // event loop
     {
         Long64_t ientry = LoadTree(jentry);
         if (ientry < 0) break;
@@ -136,7 +170,7 @@ int selectedEvents = 0;
     std::vector<P4M> mu_minus;
     
         // Loop over all charged tracks in the event (there are always 4 charged tracks: l+ l- pi+ pi-)
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)  // track loop
         {
             // Create a momentum-vector for each charged track
             P3 pTrack(dblTracksPx[i], dblTracksPy[i], dblTracksPz[i]);
@@ -163,19 +197,19 @@ if (p > 0) {
     
     // PID using detector information
 
-// electrons: large E/p
+// electrons
 if (EoverP > 0.8)
 {
     h1_EoverP_e->Fill(EoverP);
 }
 
-// muons: penetrate deeply into MUC
-else if (dMUC > 40)
+// muons
+else if (EoverP < 0.20)
 {
     h1_EoverP_mu->Fill(EoverP);
 }
 
-// pions: hadrons, small MUC penetration
+// pions
 else
 {
     h1_EoverP_pi->Fill(EoverP);
@@ -209,7 +243,7 @@ else
         else
             e_minus.push_back(electron);
     }
-    else if (dblTracksMucDepth[i] > 40)   // muon
+    else if (EoverP < 0.20)   // muon
     {
         P4M muon(px, py, pz, m_mu);
 
@@ -231,6 +265,31 @@ else
      // Fill the absolute momentum of all charged tracks in the histogram
             h1_pTracks->Fill(pTrack.R()); // R() gives the length of the vector
         }
+        // problem 3.5
+        // Fill invariant mass histograms
+
+if (e_plus.size()==1 && e_minus.size()==1)
+{
+    P4M ee = e_plus[0] + e_minus[0];
+    h1_mass_ee->Fill(ee.M());
+}
+
+if (mu_plus.size()==1 && mu_minus.size()==1)
+{
+    P4M mumu = mu_plus[0] + mu_minus[0];
+    h1_mass_mumu->Fill(mumu.M());
+}
+
+if (pi_plus.size()==1 && pi_minus.size()==1)
+{
+    P4M pipi = pi_plus[0] + pi_minus[0];
+    h1_mass_pipi->Fill(pipi.M());
+
+    // recoil mass
+    P4E recoil = pCMS - pipi;
+    h1_mass_recoil->Fill(recoil.M());
+}
+
 bool electronEvent =
     (pi_plus.size()==1 && pi_minus.size()==1 &&
      e_plus.size()==1 && e_minus.size()==1);
@@ -241,6 +300,7 @@ bool muonEvent =
 // problem 3.3
 // reconstruct J/psi from pion recoil
 if (pi_plus.size()==1 && pi_minus.size()==1)
+
 {
     P4M pions = pi_plus[0] + pi_minus[0];
 
@@ -249,7 +309,31 @@ if (pi_plus.size()==1 && pi_minus.size()==1)
     h1_mJpsi_recoil->Fill(pJpsi_recoil.M());
 }
 if (!(electronEvent || muonEvent))
-    continue;
+continue;
+//problem 3.6
+// event passed selection
+
+if (pi_plus.size()==1 && pi_minus.size()==1)
+{
+    P4M pipi = pi_plus[0] + pi_minus[0];
+    double m2_pipi = pipi.M2();
+
+    if (electronEvent)
+    {
+        P4M Jpsi = e_plus[0] + e_minus[0];
+
+        h2_dalitz->Fill((Jpsi + pi_plus[0]).M2(), m2_pipi);
+        h2_dalitz->Fill((Jpsi + pi_minus[0]).M2(), m2_pipi);
+    }
+
+    if (muonEvent)
+    {
+        P4M Jpsi = mu_plus[0] + mu_minus[0];
+
+        h2_dalitz->Fill((Jpsi + pi_plus[0]).M2(), m2_pipi);
+        h2_dalitz->Fill((Jpsi + pi_minus[0]).M2(), m2_pipi);
+    }
+}
     selectedEvents++;
     // // problem 3.0
     if (electronEvent)
@@ -305,9 +389,15 @@ if (muonEvent)
     h1_EoverP_mu->SetLineColor(kBlue);
     h1_EoverP_pi->SetLineColor(kGreen+2);
 
+    h1_EoverP_e->SetMaximum(1.2 * h1_EoverP_mu->GetMaximum());
+
     h1_EoverP_e->Draw();
     h1_EoverP_mu->Draw("SAME");
     h1_EoverP_pi->Draw("SAME");
+
+    h1_EoverP_e->SetLineWidth(2);
+    h1_EoverP_mu->SetLineWidth(2);
+    h1_EoverP_pi->SetLineWidth(2);
 
     TLegend* legend = new TLegend(0.7,0.7,0.9,0.9);
     legend->AddEntry(h1_EoverP_e,"Electrons","l");
@@ -464,6 +554,51 @@ ffit_voigt->SetLineWidth(2);
 h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 
     canvas->SaveAs(savePath + "Jpsi_recoil_voigt_fit.png");
+}
+// problem 3.5
+{
+    TCanvas* canvas = new TCanvas("canvas_mass","canvas_mass",1200,900);
+
+    h1_mass_ee->SetLineColor(kRed);
+    h1_mass_mumu->SetLineColor(kBlue);
+    h1_mass_pipi->SetLineColor(kGreen+2);
+    h1_mass_recoil->SetLineColor(kMagenta);
+
+    h1_mass_ee->SetLineWidth(2);
+    h1_mass_mumu->SetLineWidth(2);
+    h1_mass_pipi->SetLineWidth(2);
+    h1_mass_recoil->SetLineWidth(2);
+
+    h1_mass_ee->SetMaximum(1.3 * h1_mass_recoil->GetMaximum());
+    
+    double binWidth = h1_mass_ee->GetBinWidth(1);
+
+    h1_mass_ee->GetYaxis()->SetTitle(
+    Form("Events / %.3f GeV", binWidth)
+    );
+
+    h1_mass_ee->Draw();
+    h1_mass_mumu->Draw("SAME");
+    h1_mass_pipi->Draw("SAME");
+    h1_mass_recoil->Draw("SAME");
+
+    TLegend* legend = new TLegend(0.15,0.65,0.38,0.88);
+    legend->AddEntry(h1_mass_ee,"e^{+}e^{-}","l");
+    legend->AddEntry(h1_mass_mumu,"#mu^{+}#mu^{-}","l");
+    legend->AddEntry(h1_mass_pipi,"#pi^{+}#pi^{-}","l");
+    legend->AddEntry(h1_mass_recoil,"Recoil(#pi^{+}#pi^{-})","l");
+    legend->Draw();
+    
+    canvas->SaveAs(savePath + "mass_spectra_all.png");
+    canvas->SetLogy();
+}
+// problem 3.6
+{
+    TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
+
+    h2_dalitz->Draw("COLZ");
+
+    canvas->SaveAs(savePath + "Dalitz_plot.png");
 }
         // h1_pTracks->Draw(); // Draw the histogram on the canvas
 
