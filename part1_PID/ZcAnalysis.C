@@ -142,6 +142,12 @@ TH1D* h1_Emiss = new TH1D(
     "Missing energy;E_{miss} [GeV];Events",
     200, 0, 2
 );
+// problem 4.2
+TH1D* h1_chi2_4C = new TH1D(
+    "h1_chi2_4C",
+    "4C kinematic fit #chi^{2};#chi^{2}_{4C};Events",
+    200,0,200
+);
 //Problem 2.4
 double m_pi = 0.13957;   // GeV
 double m_e  = 0.000511;  // GeV
@@ -329,6 +335,12 @@ if (pi_plus.size()==1 && pi_minus.size()==1)
 }
 if (!(electronEvent || muonEvent))
 continue;
+// problem 4.2
+double chi2 = dblKinFit4CChiSq;
+h1_chi2_4C->Fill(chi2);
+// applying cut at chi^2 40
+if (chi2 > 40)
+    continue;
 // problem 4.1
 // reconstruct J/psi
 P4M Jpsi;
@@ -347,10 +359,16 @@ P4M total = Jpsi + pions;
 h1_mJpsi_pipi->Fill(total.M());
 
 // missing energy (ISR photon energy approximation)
+// missing energy 4.1
 double Emiss = pCMS.E() - total.E();
-
 h1_Emiss->Fill(Emiss);
-h1_Egamma->Fill(Emiss);
+
+// detected ISR photons
+for (int i = 0; i < intNumberGoodPhotons; i++)
+{
+    double Egamma = dblPhotonsE[i];
+    h1_Egamma->Fill(Egamma);
+}
 //problem 3.6
 // event passed selection
 
@@ -666,6 +684,20 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
     h1_Emiss->Draw();
     
     canvas->SaveAs(savePath + "Missing_energy.png");
+}
+// problem 4.2
+{
+    TCanvas* canvas = new TCanvas("canvas_chi2","canvas_chi2",1200,900);
+    canvas->SetLeftMargin(0.15);
+    double binWidth = h1_chi2_4C->GetBinWidth(1);
+    h1_chi2_4C->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
+    h1_chi2_4C->SetLineColor(kBlue);
+    h1_chi2_4C->SetLineWidth(2);
+
+    h1_chi2_4C->Draw();
+
+    canvas->SaveAs(savePath + "chi2_4C_distribution.png");
 }
         // h1_pTracks->Draw(); // Draw the histogram on the canvas
 
