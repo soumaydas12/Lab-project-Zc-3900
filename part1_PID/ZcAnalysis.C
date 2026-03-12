@@ -216,22 +216,23 @@ if (p > 0) {
     // PID using detector information
 
 // electrons
-if (EoverP > 0.8)
+if (p > 1.0 && EoverP > 0.8)
 {
     h1_EoverP_e->Fill(EoverP);
 }
 
 // muons
-else if (EoverP < 0.20)
+else if (p > 1.0 && EoverP < 0.8)
 {
     h1_EoverP_mu->Fill(EoverP);
 }
 
 // pions
-else
+else if (p < 1.0)
 {
     h1_EoverP_pi->Fill(EoverP);
 }
+
     // problem 2.4
 double px = dblTracksPx[i];
 double py = dblTracksPy[i];
