@@ -124,6 +124,24 @@ TH2D* h2_dalitz = new TH2D(
 300,0,20,
 300,0,4
 );
+// problem 4.1
+TH1D* h1_mJpsi_pipi = new TH1D(
+    "h1_mJpsi_pipi",
+    "Invariant mass of J/#psi #pi^{+}#pi^{-};M_{J/#psi#pi#pi} [GeV];Events",
+    200, 3.0, 4.5
+);
+
+TH1D* h1_Egamma = new TH1D(
+    "h1_Egamma",
+    "ISR photon energy;E_{#gamma} [GeV];Events",
+    200, 0, 2
+);
+
+TH1D* h1_Emiss = new TH1D(
+    "h1_Emiss",
+    "Missing energy;E_{miss} [GeV];Events",
+    200, 0, 2
+);
 //Problem 2.4
 double m_pi = 0.13957;   // GeV
 double m_e  = 0.000511;  // GeV
@@ -310,6 +328,28 @@ if (pi_plus.size()==1 && pi_minus.size()==1)
 }
 if (!(electronEvent || muonEvent))
 continue;
+// problem 4.1
+// reconstruct J/psi
+P4M Jpsi;
+
+if (electronEvent)
+    Jpsi = e_plus[0] + e_minus[0];
+
+if (muonEvent)
+    Jpsi = mu_plus[0] + mu_minus[0];
+
+// total final state
+P4M pions = pi_plus[0] + pi_minus[0];
+P4M total = Jpsi + pions;
+
+// invariant mass of J/psi pi+ pi-
+h1_mJpsi_pipi->Fill(total.M());
+
+// missing energy (ISR photon energy approximation)
+double Emiss = pCMS.E() - total.E();
+
+h1_Emiss->Fill(Emiss);
+h1_Egamma->Fill(Emiss);
 //problem 3.6
 // event passed selection
 
@@ -558,7 +598,7 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 // problem 3.5
 {
     TCanvas* canvas = new TCanvas("canvas_mass","canvas_mass",1200,900);
-
+    canvas->SetLeftMargin(0.15);
     h1_mass_ee->SetLineColor(kRed);
     h1_mass_mumu->SetLineColor(kBlue);
     h1_mass_pipi->SetLineColor(kGreen+2);
@@ -595,10 +635,36 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 // problem 3.6
 {
     TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
-
+    canvas->SetLeftMargin(0.15);
     h2_dalitz->Draw("COLZ");
 
     canvas->SaveAs(savePath + "Dalitz_plot.png");
+}
+// problem 4.1
+{
+    TCanvas* canvas = new TCanvas();
+    double binWidth = h1_mJpsi_pipi->GetBinWidth(1);
+    h1_mJpsi_pipi->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+    h1_mJpsi_pipi->Draw();
+    canvas->SaveAs(savePath + "m_Jpsi_pipi.png");
+}
+
+{
+    TCanvas* canvas = new TCanvas();
+    double binWidth = h1_Egamma->GetBinWidth(1);
+    h1_Egamma->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+    h1_Egamma->Draw();
+   
+    canvas->SaveAs(savePath + "ISR_photon_energy.png");
+}
+
+{
+    TCanvas* canvas = new TCanvas();
+    double binWidth = h1_Emiss->GetBinWidth(1);
+    h1_Emiss->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+    h1_Emiss->Draw();
+    
+    canvas->SaveAs(savePath + "Missing_energy.png");
 }
         // h1_pTracks->Draw(); // Draw the histogram on the canvas
 
