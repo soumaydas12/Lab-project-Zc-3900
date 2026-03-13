@@ -141,6 +141,17 @@ TH1D* h1_Emiss = new TH1D(
     "h1_Emiss",
     "Missing energy;E_{miss} [GeV];Events",
     200, 0, 2
+);// before cut for problem 4.2
+TH1D* h1_mJpsi_pipi_before = new TH1D(
+    "h1_mJpsi_pipi_before",
+    "Invariant mass of J/#psi #pi^{+}#pi^{-};M_{J/#psi#pi#pi} [GeV];Events",
+    200, 3.0, 4.5
+);
+
+TH1D* h1_Emiss_before = new TH1D(
+    "h1_Emiss_before",
+    "Missing energy;E_{miss} [GeV];Events",
+    200, 0, 2
 );
 // problem 4.2
 TH1D* h1_chi2_4C = new TH1D(
@@ -351,17 +362,34 @@ if (electronEvent)
 if (muonEvent)
     Jpsi = mu_plus[0] + mu_minus[0];
 
-// total final state
+// total final state 
+// problem 4.2
 P4M pions = pi_plus[0] + pi_minus[0];
 P4M total = Jpsi + pions;
 
-// invariant mass of J/psi pi+ pi-
-h1_mJpsi_pipi->Fill(total.M());
-
-// missing energy (ISR photon energy approximation)
-// missing energy 4.1
+// missing energy
 double Emiss = pCMS.E() - total.E();
+
+
+// ---------------- BEFORE χ² CUT ----------------
+h1_mJpsi_pipi_before->Fill(total.M());
+h1_Emiss_before->Fill(Emiss);
+
+
+// ---------------- χ² DISTRIBUTION ----------------
+double chi2 = dblKinFit4CChiSq;
+h1_chi2_4C->Fill(chi2);
+
+
+// ---------------- APPLY χ² CUT ----------------
+if (chi2 > 40)
+    continue;
+
+
+// ---------------- AFTER χ² CUT ----------------
+h1_mJpsi_pipi->Fill(total.M());
 h1_Emiss->Fill(Emiss);
+
 
 // detected ISR photons
 for (int i = 0; i < intNumberGoodPhotons; i++)
@@ -421,6 +449,15 @@ if (muonEvent)
     //=============================================================================
 
     // Absolute momentum of all charged tracks
+    {  TCanvas* canvas = new TCanvas(); // Create an empty canvas
+
+        double binWidth =  h1_pTracks->GetBinWidth(1);
+        h1_pTracks->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
+        h1_pTracks->Draw(); // Draw the histogram on the canvas
+        // Save the canvas under the save path (set in the run.sh script)
+        canvas->SaveAs(savePath + "1_absoluteMomentum.png"); // You can use .png or .pdf or ...
+      }
     // problem 2.2
     {
         TCanvas* canvas = new TCanvas(); // Create an empty canvas
@@ -430,7 +467,7 @@ if (muonEvent)
 
         h1_eEMC->Draw();
         canvas->SaveAs(savePath + "2_EEMC_leptons.png");
-
+    }
     {
         TCanvas* canvas = new TCanvas();
         h2_eEMC_vs_MUC->Draw("COLZ");
@@ -662,10 +699,28 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 // problem 4.1
 {
     TCanvas* canvas = new TCanvas();
+    double binWidth = h1_mJpsi_pipi_before->GetBinWidth(1);
+
+    h1_mJpsi_pipi_before->GetYaxis()->SetTitle(
+        Form("Events / %.3f GeV", binWidth)
+    );
+
+    h1_mJpsi_pipi_before->Draw();
+
+    canvas->SaveAs(savePath + "m_Jpsi_pipi_beforeCut.png");
+}
+// problem 4.2
+{
+    TCanvas* canvas = new TCanvas();
     double binWidth = h1_mJpsi_pipi->GetBinWidth(1);
-    h1_mJpsi_pipi->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
+    h1_mJpsi_pipi->GetYaxis()->SetTitle(
+        Form("Events / %.3f GeV", binWidth)
+    );
+
     h1_mJpsi_pipi->Draw();
-    canvas->SaveAs(savePath + "m_Jpsi_pipi.png");
+
+    canvas->SaveAs(savePath + "m_Jpsi_pipi_afterCut.png");
 }
 
 {
@@ -679,11 +734,28 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 
 {
     TCanvas* canvas = new TCanvas();
+    double binWidth = h1_Emiss_before->GetBinWidth(1);
+
+    h1_Emiss_before->GetYaxis()->SetTitle(
+        Form("Events / %.3f GeV", binWidth)
+    );
+
+    h1_Emiss_before->Draw();
+
+    canvas->SaveAs(savePath + "Missing_energy_beforeCut.png");
+}
+// problem 4.2 
+{
+    TCanvas* canvas = new TCanvas();
     double binWidth = h1_Emiss->GetBinWidth(1);
-    h1_Emiss->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
+    h1_Emiss->GetYaxis()->SetTitle(
+        Form("Events / %.3f GeV", binWidth)
+    );
+
     h1_Emiss->Draw();
-    
-    canvas->SaveAs(savePath + "Missing_energy.png");
+
+    canvas->SaveAs(savePath + "Missing_energy_afterCut.png");
 }
 // problem 4.2
 {
@@ -699,9 +771,9 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 
     canvas->SaveAs(savePath + "chi2_4C_distribution.png");
 }
-        // h1_pTracks->Draw(); // Draw the histogram on the canvas
+      
 
-        // Save the canvas under the save path (set in the run.sh script)
-        // canvas->SaveAs(savePath + "1_absoluteMomentum.png"); // You can use .png or .pdf or ...
+        
+        
     }
-}
+
