@@ -12,6 +12,12 @@
 #include <Math/Vector3D.h>
 #include <Math/Vector4D.h>
 
+// dalitz plot boundary
+double lambda(double a, double b, double c)
+{
+    return a*a + b*b + c*c - 2*a*b - 2*a*c - 2*b*c;
+}
+
 // Vector definitions
 using P3 = ROOT::Math::XYZVector;       // Three-vector
 using P4E = ROOT::Math::PxPyPzEVector;  // Four-vector with energy
@@ -120,9 +126,9 @@ TH1D* h1_mass_recoil = new TH1D(
 // problem 3.6
 TH2D* h2_dalitz = new TH2D(
 "h2_dalitz",
-"Dalitz plot; m^{2}_{J/#psi #pi} [GeV^{2}]; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]",
-300,0,20,
-300,0,4
+"Dalitz plot; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
+300,0,1.5,
+300,9,18
 );
 // problem 4.1
 TH1D* h1_mJpsi_pipi = new TH1D(
@@ -134,6 +140,11 @@ TH1D* h1_mJpsi_pipi = new TH1D(
 TH1D* h1_Egamma = new TH1D(
     "h1_Egamma",
     "ISR photon energy;E_{#gamma} [GeV];Events",
+    200, 0, 2
+);
+TH1D* h1_Egamma_ISR = new TH1D(
+    "h1_Egamma_ISR",
+    "ISR photon energy from kinematics;E_{#gamma} [GeV];Events",
     200, 0, 2
 );
 
@@ -160,6 +171,7 @@ TH1D* h1_chi2_4C = new TH1D(
     200,0,200
 );
 //Problem 2.4
+double m_jpsi = 3.0969;  // Gev
 double m_pi = 0.13957;   // GeV
 double m_e  = 0.000511;  // GeV
 double m_mu = 0.10566;   // GeV
@@ -346,12 +358,12 @@ if (pi_plus.size()==1 && pi_minus.size()==1)
 }
 if (!(electronEvent || muonEvent))
 continue;
+
+
 // problem 4.2
 double chi2 = dblKinFit4CChiSq;
 h1_chi2_4C->Fill(chi2);
-// applying cut at chi^2 40
-if (chi2 > 40)
-    continue;
+
 // problem 4.1
 // reconstruct J/psi
 P4M Jpsi;
@@ -370,6 +382,13 @@ P4M total = Jpsi + pions;
 // missing energy
 double Emiss = pCMS.E() - total.E();
 
+double s = sqrt_s * sqrt_s;
+double M = total.M();
+
+double Egamma_ISR = (s - M*M) / (2 * sqrt_s);
+
+h1_Egamma_ISR->Fill(Egamma_ISR);
+
 
 // ---------------- BEFORE χ² CUT ----------------
 h1_mJpsi_pipi_before->Fill(total.M());
@@ -377,7 +396,7 @@ h1_Emiss_before->Fill(Emiss);
 
 
 // ---------------- χ² DISTRIBUTION ----------------
-double chi2 = dblKinFit4CChiSq;
+
 h1_chi2_4C->Fill(chi2);
 
 
@@ -395,11 +414,11 @@ h1_Emiss->Fill(Emiss);
 for (int i = 0; i < intNumberGoodPhotons; i++)
 {
     double Egamma = dblPhotonsE[i];
+    if (Egamma < 0.05) continue;   // remove very soft clusters
     h1_Egamma->Fill(Egamma);
 }
 //problem 3.6
 // event passed selection
-
 if (pi_plus.size()==1 && pi_minus.size()==1)
 {
     P4M pipi = pi_plus[0] + pi_minus[0];
@@ -409,19 +428,25 @@ if (pi_plus.size()==1 && pi_minus.size()==1)
     {
         P4M Jpsi = e_plus[0] + e_minus[0];
 
-        h2_dalitz->Fill((Jpsi + pi_plus[0]).M2(), m2_pipi);
-        h2_dalitz->Fill((Jpsi + pi_minus[0]).M2(), m2_pipi);
+        double m2_jpsipi1 = (Jpsi + pi_plus[0]).M2();
+        double m2_jpsipi2 = (Jpsi + pi_minus[0]).M2();
+
+        h2_dalitz->Fill(m2_pipi, m2_jpsipi1);
+        h2_dalitz->Fill(m2_pipi, m2_jpsipi2);
     }
 
     if (muonEvent)
     {
         P4M Jpsi = mu_plus[0] + mu_minus[0];
 
-        h2_dalitz->Fill((Jpsi + pi_plus[0]).M2(), m2_pipi);
-        h2_dalitz->Fill((Jpsi + pi_minus[0]).M2(), m2_pipi);
+        double m2_jpsipi1 = (Jpsi + pi_plus[0]).M2();
+        double m2_jpsipi2 = (Jpsi + pi_minus[0]).M2();
+
+        h2_dalitz->Fill(m2_pipi, m2_jpsipi1);
+        h2_dalitz->Fill(m2_pipi, m2_jpsipi2);
     }
 }
-    selectedEvents++;
+ selectedEvents++;   
     // // problem 3.0
     if (electronEvent)
 {
@@ -692,7 +717,53 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 {
     TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
     canvas->SetLeftMargin(0.15);
+
+    //  draw Dalitz histogram
     h2_dalitz->Draw("COLZ");
+    gPad->Update();
+
+    double s = sqrt_s * sqrt_s;
+
+    TF1* dalitz_upper = new TF1("dalitz_upper",
+    [=](double *x,double*)
+    {
+        double m2_pipi = x[0];
+
+        double term1 = (s - m_jpsi*m_jpsi - m2_pipi)*(m2_pipi - 2*m_pi*m_pi);
+        double term2 = sqrt(lambda(m2_pipi,m_pi*m_pi,m_pi*m_pi) *
+                            lambda(s,m2_pipi,m_jpsi*m_jpsi));
+
+        return m_jpsi*m_jpsi + m_pi*m_pi + (term1 + term2)/(2*m2_pipi);
+
+    },0.08,1.4,0);
+
+   // quick diagnostic
+    std::cout << "Dalitz upper at x=0.5 : "
+              << dalitz_upper->Eval(0.5)
+              << std::endl;
+    //  define lower boundary
+    TF1* dalitz_lower = new TF1("dalitz_lower",
+[=](double *x,double*)
+{
+    double m2_pipi = x[0];
+
+    double term1 = (s - m_jpsi*m_jpsi - m2_pipi)*(m2_pipi - 2*m_pi*m_pi);
+    double term2 = sqrt(lambda(m2_pipi,m_pi*m_pi,m_pi*m_pi) *
+                        lambda(s,m2_pipi,m_jpsi*m_jpsi));
+
+    return m_jpsi*m_jpsi + m_pi*m_pi + (term1 - term2)/(2*m2_pipi);
+
+},0.08,1.4,0);
+
+    dalitz_upper->SetLineColor(kRed);
+    dalitz_upper->SetLineWidth(3);
+    dalitz_lower->SetLineColor(kRed);
+    dalitz_lower->SetLineWidth(3);
+
+    
+
+    dalitz_upper->Draw("same");
+    dalitz_lower->Draw("same");
 
     canvas->SaveAs(savePath + "Dalitz_plot.png");
 }
@@ -731,7 +802,16 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
    
     canvas->SaveAs(savePath + "ISR_photon_energy.png");
 }
+{
+    TCanvas* canvas = new TCanvas();
 
+    double binWidth = h1_Egamma_ISR->GetBinWidth(1);
+    h1_Egamma_ISR->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
+    h1_Egamma_ISR->Draw();
+
+    canvas->SaveAs(savePath + "ISR_photon_energy_kinematic.png");
+}
 {
     TCanvas* canvas = new TCanvas();
     double binWidth = h1_Emiss_before->GetBinWidth(1);
