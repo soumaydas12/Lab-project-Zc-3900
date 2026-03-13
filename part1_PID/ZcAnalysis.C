@@ -29,8 +29,9 @@ using ROOT::Math::VectorUtil::CosTheta; // angle between two four-vectors
 // decide which graphs should be plotted
 bool task_2_1 = true;
 bool task_2_2 = true;
-bool task_2_3 = true;
-bool task_3 = true;
+bool task_2_3 = true
+bool task_3_1_and_3_2 = true;
+bool task_3_3 = true;
 
 void ZcAnalysis::Loop(TString savePath)
 {
@@ -54,9 +55,11 @@ void ZcAnalysis::Loop(TString savePath)
     TH1D* h4_eEMC_over_pMDC_e = nullptr;
     TH1D* h4_eEMC_over_pMDC_mu = nullptr;
     TH1D* h4_eEMC_over_pMDC_pi = nullptr;
-    // TASK 3
-    TH1D* h5_jpsi_mass_electron = nullptr;
-    TH1D* h6_jpsi_mass_muon = nullptr;
+    // TASK 3.1/3.2
+    TH1D* h5_Jpsi_mass_electron = nullptr;
+    TH1D* h6_Jpsi_mass_muon = nullptr;
+    // TASK 3.3
+    TH1D* h7_mJpsi_pion_recoil = nullptr;
 
     // PDG masses in GeV/c^2
     const double electron_mass = 0.000510998946;
@@ -102,16 +105,26 @@ void ZcAnalysis::Loop(TString savePath)
         );
     }
 
-    if (task_3) {
-        h5_jpsi_mass_electron = new TH1D(
-            "h_jpsi_mass_electron",
-            "J/\\psi invariant mass (e^{+}e^{-});M_{J/\\psi} [GeV];Events",
+    // TASK 3.1/3.2
+    if (task_3_1_and_3_2) {
+        h5_Jpsi_mass_electron = new TH1D(
+            "h5_Jpsi_mass_electron",
+            "J/#psi invariant mass (e^{+}e^{-});M_{J/#psi} [GeV];Events",
             150, 2.9, 3.2
         );
-        h6_jpsi_mass_muon = new TH1D(
-            "h_jpsi_mass_muon",
-            "J/\\psi invariant mass (\\mu^{+}\\mu^{-});M_{J/\\psi} [GeV];Events",
+        h6_Jpsi_mass_muon = new TH1D(
+            "h6_Jpsi_mass_muon",
+            "J/#psi invariant mass (#mu^{+}#mu^{-});M_{J/#psi} [GeV];Events",
             150, 2.9, 3.2
+        );
+    }
+
+    // TASK 3.3
+    if (task_3_3) {
+        h7_mJpsi_pion_recoil = new TH1D(
+            "h7_mJpsi_recoil",
+            "J/#psi mass from #pi^{+}#pi^{-} recoil;M_{recoil}(#pi^{+}#pi^{-}) [GeV];Events",
+            100, 2.9, 3.2
         );
     }
 
@@ -178,18 +191,17 @@ void ZcAnalysis::Loop(TString savePath)
                 double eEMC_over_p = eEMC / p;
 
                 // differentiate between particles
-                if (dblTracksProbElectron[i] > dblTracksProbMuon[i] &&
-                    dblTracksProbElectron[i] > dblTracksProbPion[i])
+                // electrons
+                if (p > 1.0 && eEMC_over_p > 0.8)
                 {
                     h4_eEMC_over_pMDC_e->Fill(eEMC_over_p);
                 }
-                else if (dblTracksProbMuon[i] > dblTracksProbElectron[i] &&
-                        dblTracksProbMuon[i] > dblTracksProbPion[i])
+                // muons
+                else if (p > 1.0 && eEMC_over_p < 0.8)
                 {
                     h4_eEMC_over_pMDC_mu->Fill(eEMC_over_p);
                 }
-                else if (dblTracksProbPion[i] > dblTracksProbElectron[i] &&
-                        dblTracksProbPion[i] > dblTracksProbMuon[i])
+                else if (p < 1.0)
                 {
                     h4_eEMC_over_pMDC_pi->Fill(eEMC_over_p);
                 }
@@ -208,11 +220,11 @@ void ZcAnalysis::Loop(TString savePath)
             // Create J/Psi four-vectors by adding lepton pairs
             if (intNumberElectrons == 2 && intNumberMuons == 0) {
                 P4M jpsi_electron = e_plus + e_minus;
-                h5_jpsi_mass_electron->Fill(jpsi_electron.M());
+                h5_Jpsi_mass_electron->Fill(jpsi_electron.M());
             }
             else if (intNumberElectrons == 0 && intNumberMuons == 2) {
                 P4M jpsi_muon = mu_plus + mu_minus;
-                h6_jpsi_mass_muon->Fill(jpsi_muon.M());
+                h6_Jpsi_mass_muon->Fill(jpsi_muon.M());
             }
 
         }
@@ -264,15 +276,9 @@ void ZcAnalysis::Loop(TString savePath)
         canvas->SaveAs(savePath + "4_EEMC_over_PMUC.png"); 
     }
 
-    // TASK 3
-    if (task_3) {
-        // Plot J/Psi invariant mass for electrons
-        {
-            TCanvas* canvas = new TCanvas();
-            h5_jpsi_mass_electron->Draw();
-            canvas->SaveAs(savePath + "5_jpsi_mass_electron.png");
-        }
-
+    // TASK 3.1/3.2
+    if (task_3_1_and_3_2) {
+       
         // Plot J/Psi invariant mass for muons
         {
             TCanvas* canvas = new TCanvas();
@@ -291,11 +297,11 @@ void ZcAnalysis::Loop(TString savePath)
             // optionally fix the second mean equal to the first if desired:
             // f_fit->FixParameter(4,3.097);
 
-            h6_jpsi_mass_muon->Draw();
+            h6_Jpsi_mass_muon->Draw();
 
-            h6_jpsi_mass_muon->Fit(f_fit, "R");    // “R” keeps the fit inside [2.9,3.2]
+            h6_Jpsi_mass_muon->Fit(f_fit, "R");    // “R” keeps the fit inside [2.9,3.2]
 
-            canvas->SaveAs(savePath + "6_jpsi_mass_muon.png");
+            canvas->SaveAs(savePath + "6_Jpsi_mass_muon.png");
 
             // read out the narrow Gaussian's parameters
             double jpsi_mass  = f_fit->GetParameter(1); // mean of first (narrow) Gaussian
@@ -304,5 +310,55 @@ void ZcAnalysis::Loop(TString savePath)
             printf("J/psi mass = %.6f GeV, width = %.6f GeV\n",
                 jpsi_mass, jpsi_width);
         }
+        // Plot J/Psi invariant mass for electrons
+        {
+            TCanvas* canvas = new TCanvas();
+
+            // crystal ball fit
+            TF1 *f_fit = new TF1("f_fit",
+                "crystalball", 
+                2.9, 3.2);
+
+            f_fit->SetParameters(
+                20000,  // normalization
+                3.097,  // mean      
+                0.02,   // sigma
+                1.5,    // alpha (tail transition)
+                2.0     // n (tail exponent)
+            );
+
+            h5_Jpsi_mass_electron->Draw();
+
+            h5_Jpsi_mass_electron->Fit(f_fit, "R");
+
+            canvas->SaveAs(savePath + "5_Jpsi_mass_electron.png");
+
+            // read out parameters
+            double jpsi_mass  = f_fit->GetParameter(3);
+            double jpsi_width = f_fit->GetParameter(4);
+
+            printf("J/psi mass = %.6f GeV, width = %.6f GeV\n",
+                jpsi_mass, jpsi_width);
+        }
+    }
+
+    // TASK 3.3
+    if (task_3_3) {
+        TCanvas* canvas = new TCanvas("canvas","canvas", 1200, 900);
+
+        h7_mJpsi_pion_recoil->Draw();
+
+        TF1* f_fit = new TF1("f_fit",
+            "gaus",
+            2.95, 3.15);
+
+        f_fit->SetParameters(
+            20000,   // amplitude
+            3.097,   // mean
+            0.01     // sigma
+        );
+
+        h7_mJpsi_pion_recoil->Fit(f_fit,"R");
+        canvas->SaveAs(savePath + "7_mJpsi_recoil_from_pions.png");
     }
 }
