@@ -29,7 +29,7 @@ using ROOT::Math::VectorUtil::CosTheta; // angle between two four-vectors
 // decide which graphs should be plotted
 bool task_2_1 = true;
 bool task_2_2 = true;
-bool task_2_3 = true
+bool task_2_3 = true;
 bool task_3_1_and_3_2 = true;
 bool task_3_3 = true;
 
@@ -68,7 +68,10 @@ void ZcAnalysis::Loop(TString savePath)
 
     // TASK 2.1: Histogram for the absolute momentum of all charged tracks
     if (task_2_1) {
-        h1_pTracks = new TH1D("h1absMomentum", "Absolute momentum of charged tracks;|p| [GeV];Events / 0.025 GeV", 100, 0, 2.5);
+        h1_pTracks = new TH1D("h1absMomentum", 
+            "Absolute momentum of charged tracks;|p| [GeV];Events / 0.025 GeV", 
+            100, 0, 2.5
+        );
     }
 
     // TASK 2.2
@@ -83,7 +86,7 @@ void ZcAnalysis::Loop(TString savePath)
         "E_{EMC} vs d_{MUC};E_{EMC} [GeV];d_{MUC} [mm]",
         100, 0, 2.0,
         100, 0, 200
-    );
+        );
     }
 
     // TASK 2.3
@@ -174,11 +177,11 @@ void ZcAnalysis::Loop(TString savePath)
 
             // TASK 2.2
             if (task_2_2) {
+                double eEMC = dblTracksECal[i];
+                double dMUC = dblTracksMucDepth[i];
                 // momentum cut to select leptons
-                if (p > 1.0)
+                if (p > 0.8)
                 {
-                    double eEMC = dblTracksECal[i];
-                    double dMUC = dblTracksMucDepth[i];
 
                     h2_eEMC->Fill(eEMC);
                     h3_eEMC_vs_MUC->Fill(eEMC, dMUC);
@@ -218,14 +221,28 @@ void ZcAnalysis::Loop(TString savePath)
 
             // TASK 3
             // Create J/Psi four-vectors by adding lepton pairs
-            if (intNumberElectrons == 2 && intNumberMuons == 0) {
-                P4M jpsi_electron = e_plus + e_minus;
-                h5_Jpsi_mass_electron->Fill(jpsi_electron.M());
+            if (task_3_1_and_3_2) {
+                if (intNumberElectrons == 2 && intNumberMuons == 0) {
+                    P4M jpsi_electron = e_plus + e_minus;
+                    h5_Jpsi_mass_electron->Fill(jpsi_electron.M());
+                }
+                else if (intNumberElectrons == 0 && intNumberMuons == 2) {
+                    P4M jpsi_muon = mu_plus + mu_minus;
+                    h6_Jpsi_mass_muon->Fill(jpsi_muon.M());
+                }
             }
-            else if (intNumberElectrons == 0 && intNumberMuons == 2) {
-                P4M jpsi_muon = mu_plus + mu_minus;
-                h6_Jpsi_mass_muon->Fill(jpsi_muon.M());
+
+            // TASK 3.3
+            if (task_3_3) {
+                if (pion_plus.size()==1 && pion_minus.size()==1) {
+                    P4M pions = pion_plus[0] + pion_minus[0];
+                    P4E pJpsi_recoil = pCMS - pions;
+                    h7_mJpsi_pion_recoil->Fill(pJpsi_recoil.M());
+                }
+                if (!(electronEvent || muonEvent))
+                    continue;
             }
+            
 
         }
 
@@ -301,7 +318,7 @@ void ZcAnalysis::Loop(TString savePath)
 
             h6_Jpsi_mass_muon->Fit(f_fit, "R");    // “R” keeps the fit inside [2.9,3.2]
 
-            canvas->SaveAs(savePath + "6_Jpsi_mass_muon.png");
+            canvas->SaveAs(savePath + "5_Jpsi_mass_muon.png");
 
             // read out the narrow Gaussian's parameters
             double jpsi_mass  = f_fit->GetParameter(1); // mean of first (narrow) Gaussian
@@ -310,6 +327,7 @@ void ZcAnalysis::Loop(TString savePath)
             printf("J/psi mass = %.6f GeV, width = %.6f GeV\n",
                 jpsi_mass, jpsi_width);
         }
+
         // Plot J/Psi invariant mass for electrons
         {
             TCanvas* canvas = new TCanvas();
@@ -331,7 +349,7 @@ void ZcAnalysis::Loop(TString savePath)
 
             h5_Jpsi_mass_electron->Fit(f_fit, "R");
 
-            canvas->SaveAs(savePath + "5_Jpsi_mass_electron.png");
+            canvas->SaveAs(savePath + "6_Jpsi_mass_electron.png");
 
             // read out parameters
             double jpsi_mass  = f_fit->GetParameter(3);
