@@ -61,6 +61,20 @@ TH1D* h1_mJpsi_mu = new TH1D(
     "J/#psi invariant mass (muon channel);M_{#mu^{+}#mu^{-}} [GeV];Events",
     100, 2.9, 3.2
 );
+
+// problem 4.4
+
+TH1D* h1_p_e = new TH1D(
+"h1_p_e",
+"Electron momentum;|p_{e}| [GeV];Events",
+200,0,3
+);
+
+TH1D* h1_p_mu = new TH1D(
+"h1_p_mu",
+"Muon momentum;|p_{#mu}| [GeV];Events",
+200,0,3
+);
 // problem 3.3
 TH1D* h1_mJpsi_recoil = new TH1D(
     "h1_mJpsi_recoil",
@@ -104,7 +118,11 @@ TH1D* h1_mJpsi_pipi_before = new TH1D(
     "Invariant mass of J/#psi #pi^{+}#pi^{-};M_{J/#psi#pi#pi} [GeV];Events",
     200, 3.0, 4.5
 );
-
+TH1D* h1_mJpsi_pipi_afterBhabha = new TH1D(
+    "h1_mJpsi_pipi_afterBhabha",
+    "Invariant mass after Bhabha cut;M_{J/#psi#pi#pi} [GeV];Events",
+    200,3.0,4.5
+);
 TH1D* h1_Emiss_before = new TH1D(
     "h1_Emiss_before",
     "Missing energy;E_{miss} [GeV];Events",
@@ -116,6 +134,37 @@ TH1D* h1_chi2_4C = new TH1D(
     "4C kinematic fit #chi^{2};#chi^{2}_{4C};Events",
     200,0,200
 );
+// problem 4.5
+TH1D* h_cos_ee = new TH1D(
+"cos_ee",
+"cos(#theta) between e^{+}e^{-};cos(#theta);Events",
+100,-1,1
+);
+
+TH1D* h_cos_epi_minus = new TH1D(
+"cos_epi_minus",
+"cos(#theta) between e^{+}#pi^{-};cos(#theta);Events",
+100,-1,1
+);
+
+TH1D* h_cos_pie_minus = new TH1D(
+"cos_pie_minus",
+"cos(#theta) between #pi^{+}e^{-};cos(#theta);Events",
+100,-1,1
+);
+
+TH1D* h_cos_pipi = new TH1D(
+"cos_pipi",
+"cos(#theta) between #pi^{+}#pi^{-};cos(#theta);Events",
+100,-1,1
+);
+// problem 4.5
+TH1D* h1_mJpsi_pipi_afterConversion = new TH1D(
+"h1_mJpsi_pipi_afterConversion",
+"Invariant mass after conversion cut;M_{J/#psi#pi#pi} [GeV];Events",
+200,3.0,4.5
+);
+
 //Problem 2.4
 double m_jpsi = 3.0969;  // Gev
 double m_pi = 0.13957;   // GeV
@@ -180,6 +229,17 @@ dblKinFit4CMomentaPz[3],
 dblKinFit4CMomentaE[3]
 );
 
+// problem 4.4
+double p_lp = lep_plus.P();
+double p_lm = lep_minus.P();
+
+// problem 4.5 photon conversion study (angular distributions)
+
+double cos_ee = CosTheta(lep_plus, lep_minus);
+double cos_epi_minus = CosTheta(lep_plus, pi_minus);
+double cos_pie_minus = CosTheta(pi_plus, lep_minus);
+double cos_pipi = CosTheta(pi_plus, pi_minus);
+
         //=============================================================================
         // Your selection for each event
         //=============================================================================
@@ -193,6 +253,41 @@ dblKinFit4CMomentaE[3]
 
 bool electronEvent = (intNumberElectrons == 2);
 bool muonEvent     = (intNumberMuons == 2);
+
+// problem 4.5
+// fill angular histograms
+h_cos_ee->Fill(cos_ee);
+h_cos_epi_minus->Fill(cos_epi_minus);
+h_cos_pie_minus->Fill(cos_pie_minus);
+h_cos_pipi->Fill(cos_pipi);
+
+// reconstruct J/psi and total system BEFORE Bhabha cut
+P4E Jpsi_temp  = lep_plus + lep_minus;
+P4E pions_temp = pi_plus + pi_minus;
+P4E total_temp = Jpsi_temp + pions_temp;
+
+// fill invariant mass BEFORE Bhabha cut
+h1_mJpsi_pipi_before->Fill(total_temp.M());
+// problem 4.4
+if (electronEvent)
+{
+    h1_p_e->Fill(p_lp);
+    h1_p_e->Fill(p_lm);
+}
+
+if (muonEvent)
+{
+    h1_p_mu->Fill(p_lp);
+    h1_p_mu->Fill(p_lm);
+}
+// ---------------- Bhabha background rejection ----------------
+if (electronEvent)
+{
+    if (p_lp > 2.0 || p_lm > 2.0)
+        continue;
+}
+// invariant mass after bhabha cut
+h1_mJpsi_pipi_afterBhabha->Fill(total_temp.M());
 // problem 3.3
 // reconstruct J/psi from pion recoil
 
@@ -217,6 +312,13 @@ P4E Jpsi = lep_plus + lep_minus;
 // problem 4.2
 P4E pions = pi_plus + pi_minus;
 P4E total = Jpsi + pions;
+// problem 4.5
+// ---- photon conversion rejection ----
+if (cos_epi_minus > 0.95 || cos_pie_minus > 0.95 || cos_pipi > 0.95)
+    continue;
+
+// fill invariant mass after conversion cut
+h1_mJpsi_pipi_afterConversion->Fill(total.M());
 
 // missing energy
 double Emiss = pCMS.E() - total.E();
@@ -230,7 +332,6 @@ h1_Egamma_ISR->Fill(Egamma_ISR);
 
 
 // ---------------- BEFORE χ² CUT ----------------
-h1_mJpsi_pipi_before->Fill(total.M());
 h1_Emiss_before->Fill(Emiss);
 
 
@@ -516,7 +617,7 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 
     h1_mJpsi_pipi->Draw();
 
-    canvas->SaveAs(savePath + "m_Jpsi_pipi_afterCut.png");
+    canvas->SaveAs(savePath + "m_Jpsi_pipi_after_chi^2_Cut.png");
 }
 
 {
@@ -575,6 +676,72 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
     h1_chi2_4C->Draw();
 
     canvas->SaveAs(savePath + "chi2_4C_distribution.png");
+}
+// problem 4.4
+{
+TCanvas* canvas = new TCanvas();
+double binWidth = h1_p_e->GetBinWidth(1);
+h1_p_e->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+h1_p_e->Draw();
+canvas->SaveAs(savePath + "electron_momentum.png");
+}
+
+{
+TCanvas* canvas = new TCanvas();
+double binWidth = h1_p_mu->GetBinWidth(1);
+h1_p_mu->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+h1_p_mu->Draw();
+canvas->SaveAs(savePath + "muon_momentum.png");
+}
+{
+    TCanvas* canvas = new TCanvas();
+    double binWidth = h1_mJpsi_pipi_afterBhabha->GetBinWidth(1);
+
+    h1_mJpsi_pipi_afterBhabha->GetYaxis()->SetTitle(
+        Form("Events / %.3f GeV", binWidth)
+    );
+
+    h1_mJpsi_pipi_afterBhabha->Draw();
+
+    canvas->SaveAs(savePath + "m_Jpsi_pipi_afterBhabhaCut.png");
+}
+// problem 4.5
+// photon conversion angular distributions
+
+{
+TCanvas* canvas = new TCanvas();
+h_cos_ee->Draw();
+canvas->SaveAs(savePath + "cosTheta_ee.png");
+}
+
+{
+TCanvas* canvas = new TCanvas();
+h_cos_epi_minus->Draw();
+canvas->SaveAs(savePath + "cosTheta_e_pi_minus.png");
+}
+
+{
+TCanvas* canvas = new TCanvas();
+h_cos_pie_minus->Draw();
+canvas->SaveAs(savePath + "cosTheta_pi_plus_e_minus.png");
+}
+
+{
+TCanvas* canvas = new TCanvas();
+h_cos_pipi->Draw();
+canvas->SaveAs(savePath + "cosTheta_pipi.png");
+}
+{
+TCanvas* canvas = new TCanvas();
+double binWidth = h1_mJpsi_pipi_afterConversion->GetBinWidth(1);
+
+h1_mJpsi_pipi_afterConversion->GetYaxis()->SetTitle(
+Form("Events / %.3f GeV", binWidth)
+);
+
+h1_mJpsi_pipi_afterConversion->Draw();
+
+canvas->SaveAs(savePath + "m_Jpsi_pipi_afterConversionCut.png");
 }
       
 
