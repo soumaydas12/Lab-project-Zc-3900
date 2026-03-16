@@ -164,7 +164,62 @@ TH1D* h1_mJpsi_pipi_afterConversion = new TH1D(
 "Invariant mass after conversion cut;M_{J/#psi#pi#pi} [GeV];Events",
 200,3.0,4.5
 );
+// J/psi mass spectra BEFORE cuts
+TH1D* h_mJpsi_e_before = new TH1D("h_mJpsi_e_before",
+"J/#psi mass e^{+}e^{-} before cuts;Mass [GeV];Events",100,2.9,3.2);
 
+TH1D* h_mJpsi_mu_before = new TH1D("h_mJpsi_mu_before",
+"J/#psi mass #mu^{+}#mu^{-} before cuts;Mass [GeV];Events",100,2.9,3.2);
+
+TH1D* h_mJpsi_recoil_before = new TH1D("h_mJpsi_recoil_before",
+"J/#psi recoil mass before cuts;Mass [GeV];Events",100,2.9,3.2);
+
+
+// AFTER BHABHA CUT
+TH1D* h_mJpsi_e_afterBhabha = new TH1D("h_mJpsi_e_afterBhabha",
+"J/#psi mass e^{+}e^{-} after Bhabha cut;Mass [GeV];Events",100,2.9,3.2);
+
+TH1D* h_mJpsi_mu_afterBhabha = new TH1D("h_mJpsi_mu_afterBhabha",
+"J/#psi mass #mu^{+}#mu^{-} after Bhabha cut;Mass [GeV];Events",100,2.9,3.2);
+
+TH1D* h_mJpsi_recoil_afterBhabha = new TH1D("h_mJpsi_recoil_afterBhabha",
+"J/#psi recoil mass after Bhabha cut;Mass [GeV];Events",100,2.9,3.2);
+// After conversion cut
+TH1D* h_mJpsi_e_afterConversion = new TH1D(
+"h_mJpsi_e_afterConversion",
+"J/#psi mass e^{+}e^{-} after conversion cut;Mass [GeV];Events",
+100,2.9,3.2
+);
+
+TH1D* h_mJpsi_mu_afterConversion = new TH1D(
+"h_mJpsi_mu_afterConversion",
+"J/#psi mass #mu^{+}#mu^{-} after conversion cut;Mass [GeV];Events",
+100,2.9,3.2
+);
+
+TH1D* h_mJpsi_recoil_afterConversion = new TH1D(
+"h_mJpsi_recoil_afterConversion",
+"J/#psi recoil mass after conversion cut;Mass [GeV];Events",
+100,2.9,3.2
+);
+// After chi^2 cut
+TH1D* h_mJpsi_e_afterChi2 = new TH1D(
+"h_mJpsi_e_afterChi2",
+"J/#psi mass e^{+}e^{-} after #chi^{2} cut;Mass [GeV];Events",
+100,2.9,3.2
+);
+
+TH1D* h_mJpsi_mu_afterChi2 = new TH1D(
+"h_mJpsi_mu_afterChi2",
+"J/#psi mass #mu^{+}#mu^{-} after #chi^{2} cut;Mass [GeV];Events",
+100,2.9,3.2
+);
+
+TH1D* h_mJpsi_recoil_afterChi2 = new TH1D(
+"h_mJpsi_recoil_afterChi2",
+"J/#psi recoil mass after #chi^{2} cut;Mass [GeV];Events",
+100,2.9,3.2
+);
 //Problem 2.4
 double m_jpsi = 3.0969;  // Gev
 double m_pi = 0.13957;   // GeV
@@ -264,6 +319,15 @@ h_cos_pipi->Fill(cos_pipi);
 // reconstruct J/psi and total system BEFORE Bhabha cut
 P4E Jpsi_temp  = lep_plus + lep_minus;
 P4E pions_temp = pi_plus + pi_minus;
+// BEFORE CUTS
+if(electronEvent)
+    h_mJpsi_e_before->Fill(Jpsi_temp.M());
+
+if(muonEvent)
+    h_mJpsi_mu_before->Fill(Jpsi_temp.M());
+
+P4E recoil_temp = pCMS - pions_temp;
+h_mJpsi_recoil_before->Fill(recoil_temp.M());
 P4E total_temp = Jpsi_temp + pions_temp;
 
 // fill invariant mass BEFORE Bhabha cut
@@ -284,7 +348,15 @@ if (muonEvent)
 
     if (p_lp > 2.0 || p_lm > 2.0)
         continue;
+// AFTER BHABHA CUT
+if(electronEvent)
+    h_mJpsi_e_afterBhabha->Fill(Jpsi_temp.M());
 
+if(muonEvent)
+    h_mJpsi_mu_afterBhabha->Fill(Jpsi_temp.M());
+
+P4E recoil_bhabha = pCMS - pions_temp;
+h_mJpsi_recoil_afterBhabha->Fill(recoil_bhabha.M());
 
 // invariant mass after bhabha cut
 h1_mJpsi_pipi_afterBhabha->Fill(total_temp.M());
@@ -316,7 +388,16 @@ P4E total = Jpsi + pions;
 // ---- photon conversion rejection ----
 if (cos_epi_minus > 0.95 || cos_pie_minus > 0.95 || cos_pipi > 0.95)
     continue;
+// AFTER CONVERSION CUT
 
+if(electronEvent)
+    h_mJpsi_e_afterConversion->Fill(Jpsi.M());
+
+if(muonEvent)
+    h_mJpsi_mu_afterConversion->Fill(Jpsi.M());
+
+P4E recoil_conv = pCMS - pions;
+h_mJpsi_recoil_afterConversion->Fill(recoil_conv.M());
 // fill invariant mass after conversion cut
 h1_mJpsi_pipi_afterConversion->Fill(total.M());
 
@@ -339,7 +420,16 @@ h1_Emiss_before->Fill(Emiss);
 // ---------------- APPLY χ² CUT ----------------
 if (chi2 > 40)
     continue;
+// AFTER χ² CUT
 
+if(electronEvent)
+    h_mJpsi_e_afterChi2->Fill(Jpsi.M());
+
+if(muonEvent)
+    h_mJpsi_mu_afterChi2->Fill(Jpsi.M());
+
+P4E recoil_chi2 = pCMS - pions;
+h_mJpsi_recoil_afterChi2->Fill(recoil_chi2.M());
 selectedEvents++;   
 
 
@@ -742,6 +832,80 @@ Form("Events / %.3f GeV", binWidth)
 h1_mJpsi_pipi_afterConversion->Draw();
 
 canvas->SaveAs(savePath + "m_Jpsi_pipi_afterConversionCut.png");
+}
+{
+TCanvas* canvas = new TCanvas("canvas_mass","canvas_mass",1200,900);
+
+h_mJpsi_e_afterBhabha->SetLineColor(kRed);
+h_mJpsi_mu_afterBhabha->SetLineColor(kBlue);
+h_mJpsi_recoil_afterBhabha->SetLineColor(kMagenta);
+
+h_mJpsi_recoil_afterBhabha->Draw();
+h_mJpsi_e_afterBhabha->Draw("same");
+h_mJpsi_mu_afterBhabha->Draw("same");
+
+TLegend* leg = new TLegend(0.15,0.7,0.35,0.85);
+leg->AddEntry(h_mJpsi_e_afterBhabha,"e^{+}e^{-}","l");
+leg->AddEntry(h_mJpsi_mu_afterBhabha,"#mu^{+}#mu^{-}","l");
+leg->AddEntry(h_mJpsi_recoil_afterBhabha,"Recoil(#pi^{+}#pi^{-})","l");
+leg->Draw();
+
+canvas->SaveAs(savePath + "Jpsi_mass_spectrum_afterBhabha.png");
+}
+// after conversion cut
+{
+TCanvas* canvas = new TCanvas();
+
+h_mJpsi_e_afterConversion->SetLineColor(kRed);
+h_mJpsi_mu_afterConversion->SetLineColor(kBlue);
+h_mJpsi_recoil_afterConversion->SetLineColor(kMagenta);
+
+h_mJpsi_recoil_afterConversion->Draw();
+h_mJpsi_e_afterConversion->Draw("same");
+h_mJpsi_mu_afterConversion->Draw("same");
+
+TLegend* leg = new TLegend(0.15,0.7,0.35,0.85);
+leg->AddEntry(h_mJpsi_e_afterConversion,"e^{+}e^{-}","l");
+leg->AddEntry(h_mJpsi_mu_afterConversion,"#mu^{+}#mu^{-}","l");
+leg->AddEntry(h_mJpsi_recoil_afterConversion,"Recoil(#pi^{+}#pi^{-})","l");
+leg->Draw();
+
+canvas->SaveAs(savePath + "Jpsi_mass_afterConversion.png");
+// after chi^2 cut
+}
+{
+
+TCanvas* canvas_chi2 = new TCanvas("canvas_chi2_mass","canvas_chi2_mass",1200,900);
+canvas_chi2->SetLeftMargin(0.15);
+
+// set colors
+h_mJpsi_e_afterChi2->SetLineColor(kRed);
+h_mJpsi_mu_afterChi2->SetLineColor(kBlue);
+h_mJpsi_recoil_afterChi2->SetLineColor(kMagenta);
+
+h_mJpsi_e_afterChi2->SetLineWidth(2);
+h_mJpsi_mu_afterChi2->SetLineWidth(2);
+h_mJpsi_recoil_afterChi2->SetLineWidth(2);
+
+// set y-axis title
+double binWidth = h_mJpsi_e_afterChi2->GetBinWidth(1);
+h_mJpsi_e_afterChi2->GetYaxis()->SetTitle(
+Form("Events / %.3f GeV", binWidth)
+);
+
+// draw spectra
+h_mJpsi_e_afterChi2->Draw();
+h_mJpsi_mu_afterChi2->Draw("same");
+h_mJpsi_recoil_afterChi2->Draw("same");
+
+// legend
+TLegend* leg_chi2 = new TLegend(0.15,0.70,0.35,0.85);
+leg_chi2->AddEntry(h_mJpsi_e_afterChi2,"e^{+}e^{-}","l");
+leg_chi2->AddEntry(h_mJpsi_mu_afterChi2,"#mu^{+}#mu^{-}","l");
+leg_chi2->AddEntry(h_mJpsi_recoil_afterChi2,"Recoil(#pi^{+}#pi^{-})","l");
+leg_chi2->Draw();
+
+canvas_chi2->SaveAs(savePath + "Jpsi_mass_afterChi2Cut.png");
 }
       }
 
