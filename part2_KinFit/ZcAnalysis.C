@@ -281,11 +281,11 @@ if (muonEvent)
     h1_p_mu->Fill(p_lm);
 }
 // ---------------- Bhabha background rejection ----------------
-if (electronEvent)
-{
+
     if (p_lp > 2.0 || p_lm > 2.0)
         continue;
-}
+
+
 // invariant mass after bhabha cut
 h1_mJpsi_pipi_afterBhabha->Fill(total_temp.M());
 // problem 3.3
@@ -743,9 +743,5 @@ h1_mJpsi_pipi_afterConversion->Draw();
 
 canvas->SaveAs(savePath + "m_Jpsi_pipi_afterConversionCut.png");
 }
-      
-
-        
-        
-    }
+      }
 
