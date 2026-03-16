@@ -27,19 +27,19 @@ using ROOT::Math::VectorUtil::CosTheta; // angle between two four-vectors
 //=============================================================================
 
 // decide which graphs should be plotted
-bool task_2_1 = true;
-bool task_2_2 = true;
-bool task_2_3 = true;
-bool task_3_1_and_3_2 = true;
-bool task_3_3 = true;
-bool task_3_5 = true;
+bool task_2_1 = false;
+bool task_2_2 = false;
+bool task_2_3 = false;
+bool task_3_1_and_3_2 = false;
+bool task_3_3 = false;
+bool task_3_5 = false;
+bool task_3_6 = true;
 
 void ZcAnalysis::Loop(TString savePath)
 {
     // Some settings
     gROOT->SetBatch(true); // no graphical output during execution
-    // gStyle->SetOptStat(0); // no statistics box on histograms
-
+    gStyle->SetOptStat(0); // no statistics box on histograms
 
     //=============================================================================
     // All histogram definitions should be placed here:
@@ -66,6 +66,8 @@ void ZcAnalysis::Loop(TString savePath)
     TH1D* h8_mass_mumu = nullptr;
     TH1D* h8_mass_pipi = nullptr;
     TH1D* h8_mass_recoil = nullptr;
+    // TASK 3.6
+    TH2D* h9_dalitz = nullptr;
 
     // PDG masses in GeV/c^2
     const double electron_mass = 0.000510998946;
@@ -91,7 +93,7 @@ void ZcAnalysis::Loop(TString savePath)
     // TASK 2.1: Histogram for the absolute momentum of all charged tracks
     if (task_2_1) {
         h1_pTracks = new TH1D("h1absMomentum", 
-            "Absolute momentum of charged tracks;|p| [GeV];Events / 0.025 GeV", 
+            "Absolute momentum of charged tracks;|p| [GeV];Events", 
             100, 0, 2.5
         );
     }
@@ -161,7 +163,15 @@ void ZcAnalysis::Loop(TString savePath)
         h8_mass_recoil = new TH1D("h8_mass_recoil", "Invariant mass spectra;Mass [GeV];Events", 200,0,4);
     }
 
-    
+    // TASK 3.6: Dalitz plot
+    if (task_3_6) {
+        h9_dalitz = new TH2D(
+            "h_dalitz",
+            "Dalitz Plot; m^{2}(#pi^{+}#pi^{-}); m^{2}(J/#psi #pi)",
+            300, 0, 1.5,
+            200, 9, 18
+        );
+    }
     
 
 
@@ -266,26 +276,49 @@ void ZcAnalysis::Loop(TString savePath)
             }
         }
 
-        // Fill combined mass histograms
-        if (intNumberElectrons == 2 && intNumberMuons == 0) {
-            P4M ee = e_plus + e_minus;
-            h8_mass_ee->Fill(ee.M());
-        }
-        if (intNumberElectrons == 0 && intNumberMuons == 2) {
-            P4M mumu = mu_plus + mu_minus;
-            h8_mass_mumu->Fill(mumu.M());
-        }
-        P4M pipi = pion_plus + pion_minus;
-        h8_mass_pipi->Fill(pipi.M());
-        // recoil mass
-        P4E recoil = pCMS - pipi;
-        h8_mass_recoil->Fill(recoil.M());
-
         // TASK 3.3
         if (task_3_3) {
+            P4M pipi = pion_plus + pion_minus;
+            P4E recoil = pCMS - pipi;
             h7_mJpsi_pion_recoil->Fill(recoil.M());
-            if (!((intNumberElectrons == 2 && intNumberMuons == 0) || (intNumberElectrons == 0 && intNumberMuons == 2)))
-                continue;
+        }
+
+        // TASK 3.5
+        if (task_3_5) {
+            // Fill combined mass histograms
+            if (intNumberElectrons == 2 && intNumberMuons == 0) {
+                P4M ee = e_plus + e_minus;
+                h8_mass_ee->Fill(ee.M());
+            }
+            if (intNumberElectrons == 0 && intNumberMuons == 2) {
+                P4M mumu = mu_plus + mu_minus;
+                h8_mass_mumu->Fill(mumu.M());
+            }
+            P4M pipi = pion_plus + pion_minus;
+            h8_mass_pipi->Fill(pipi.M());
+            // recoil mass
+            P4E recoil = pCMS - pipi;
+            h8_mass_recoil->Fill(recoil.M());
+        }
+
+        // TASK 3.6
+        if (task_3_6) {
+
+            P4M jpsi;
+
+            if (intNumberElectrons == 2) {
+                jpsi = e_plus + e_minus;
+            }
+            else {
+                jpsi = mu_plus + mu_minus;
+            }
+
+            double m2_pipi = (pion_plus + pion_minus).M2();
+            double m2_jpsi_pi_plus  = (jpsi + pion_plus).M2();
+            double m2_jpsi_pi_minus = (jpsi + pion_minus).M2();
+
+            h9_dalitz->Fill(m2_pipi, m2_jpsi_pi_plus);
+            h9_dalitz->Fill(m2_pipi, m2_jpsi_pi_minus);
         }
 
         //=============================================================================
@@ -301,6 +334,13 @@ void ZcAnalysis::Loop(TString savePath)
     // TASK 2.1: Absolute momentum of all charged tracks
     if (task_2_1) {
         TCanvas* canvas = new TCanvas(); // Create an empty canvas
+        h1_pTracks->SetLineWidth(2); // thicker histogram line
+        gPad->SetLeftMargin(0.15);
+        gPad->SetBottomMargin(0.15);
+        h1_pTracks->GetYaxis()->SetTitleSize(0.05);
+        h1_pTracks->GetXaxis()->SetTitleSize(0.05);
+        double binWidth =  h1_pTracks->GetBinWidth(1);
+        h1_pTracks->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
         h1_pTracks->Draw(); // Draw the histogram on the canvas
         // Save the canvas under the save path (set in the run.sh script)
         canvas->SaveAs(savePath + "1_absoluteMomentum.png"); // You can use .png or .pdf or ...
@@ -310,11 +350,24 @@ void ZcAnalysis::Loop(TString savePath)
     if (task_2_2) {
         {
         TCanvas* canvas = new TCanvas();
+        h2_eEMC->SetLineWidth(2);
+        gPad->SetLeftMargin(0.15);
+        gPad->SetBottomMargin(0.15);
+        h2_eEMC->GetYaxis()->SetTitleSize(0.05);
+        h2_eEMC->GetXaxis()->SetTitleSize(0.05);
+        double binWidth =  h1_pTracks->GetBinWidth(1);
+        h2_eEMC->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
         h2_eEMC->Draw();
         canvas->SaveAs(savePath + "2_EEMC_leptons.png");
         }
         {
         TCanvas* canvas = new TCanvas();
+        h3_eEMC_vs_MUC->SetLineWidth(2);
+        gPad->SetLeftMargin(0.15);
+        gPad->SetRightMargin(0.15);
+        gPad->SetBottomMargin(0.15);
+        h3_eEMC_vs_MUC->GetYaxis()->SetTitleSize(0.05);
+        h3_eEMC_vs_MUC->GetXaxis()->SetTitleSize(0.05);
         h3_eEMC_vs_MUC->Draw("COLZ");
         canvas->SaveAs(savePath + "3_EEMC_vs_MUC.png");
         }
@@ -325,6 +378,17 @@ void ZcAnalysis::Loop(TString savePath)
         TCanvas* canvas = new TCanvas();
 
         h4_eEMC_over_pMDC_e->SetLineColor(kRed);
+        h4_eEMC_over_pMDC_e->SetLineWidth(2);
+        gPad->SetLeftMargin(0.15);
+        gPad->SetBottomMargin(0.15);
+        h4_eEMC_over_pMDC_e->GetYaxis()->SetTitleSize(0.05);
+        h4_eEMC_over_pMDC_e->GetXaxis()->SetTitleSize(0.05);
+
+        double binWidth =  h4_eEMC_over_pMDC_e->GetBinWidth(1);
+        h4_eEMC_over_pMDC_e->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
+        h4_eEMC_over_pMDC_e->Draw("COLZ");
+
         h4_eEMC_over_pMDC_mu->SetLineColor(kBlue);
         h4_eEMC_over_pMDC_pi->SetLineColor(kGreen+2);
 
@@ -348,6 +412,15 @@ void ZcAnalysis::Loop(TString savePath)
 
                 f_single->SetParameters(25000, 3.097, 0.012);
 
+                h5_Jpsi_mass_muon->SetLineWidth(2);
+                gPad->SetLeftMargin(0.15);
+                gPad->SetBottomMargin(0.15);
+                h5_Jpsi_mass_muon->GetYaxis()->SetTitleSize(0.05);
+                h5_Jpsi_mass_muon->GetXaxis()->SetTitleSize(0.05);
+
+                double binWidth =  h5_Jpsi_mass_muon->GetBinWidth(1);
+                h5_Jpsi_mass_muon->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
                 h5_Jpsi_mass_muon->Draw();
 
                 h5_Jpsi_mass_muon->Fit(f_single, "R");
@@ -367,11 +440,16 @@ void ZcAnalysis::Loop(TString savePath)
                     2.9, 3.2);
 
                 // set reasonable starting values: mass ≃3.097, narrow width few MeV,
-                // broader width maybe a few × larger
                 f_double->SetParameters(1000, 3.097, 0.005,   200, 3.097, 0.020);
 
-                // optionally fix the second mean equal to the first if desired:
-                // f_fit->FixParameter(4,3.097);
+                h5_Jpsi_mass_muon->SetLineWidth(2);
+                gPad->SetLeftMargin(0.15);
+                gPad->SetBottomMargin(0.15);
+                h5_Jpsi_mass_muon->GetYaxis()->SetTitleSize(0.05);
+                h5_Jpsi_mass_muon->GetXaxis()->SetTitleSize(0.05);
+
+                double binWidth =  h5_Jpsi_mass_muon->GetBinWidth(1);
+                h5_Jpsi_mass_muon->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
 
                 h5_Jpsi_mass_muon->Draw();
 
@@ -404,6 +482,15 @@ void ZcAnalysis::Loop(TString savePath)
                 1.5,    // alpha (tail transition)
                 2.0     // n (tail exponent)
             );
+
+            h6_Jpsi_mass_electron->SetLineWidth(2);
+            gPad->SetLeftMargin(0.15);
+            gPad->SetBottomMargin(0.15);
+            h6_Jpsi_mass_electron->GetYaxis()->SetTitleSize(0.05);
+            h6_Jpsi_mass_electron->GetXaxis()->SetTitleSize(0.05);
+
+            double binWidth =  h6_Jpsi_mass_electron->GetBinWidth(1);
+            h6_Jpsi_mass_electron->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
 
             h6_Jpsi_mass_electron->Draw();
 
@@ -441,6 +528,15 @@ void ZcAnalysis::Loop(TString savePath)
 
             h7_mJpsi_pion_recoil->Fit(f_gaus,"R");
 
+            h7_mJpsi_pion_recoil->SetLineWidth(2);
+            gPad->SetLeftMargin(0.15);
+            gPad->SetBottomMargin(0.15);
+            h7_mJpsi_pion_recoil->GetYaxis()->SetTitleSize(0.05);
+            h7_mJpsi_pion_recoil->GetXaxis()->SetTitleSize(0.05);
+
+            double binWidth =  h7_mJpsi_pion_recoil->GetBinWidth(1);
+            h7_mJpsi_pion_recoil->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
+
             h7_mJpsi_pion_recoil->Draw();
 
             canvas->SaveAs(savePath + "7_mJpsi_recoil_from_pions_gaussian.png");
@@ -469,6 +565,12 @@ void ZcAnalysis::Loop(TString savePath)
 
             h7_mJpsi_pion_recoil->Fit(f_voigt,"R");
 
+            h7_mJpsi_pion_recoil->SetLineWidth(2);
+            gPad->SetLeftMargin(0.15);
+            gPad->SetBottomMargin(0.15);
+            h7_mJpsi_pion_recoil->GetYaxis()->SetTitleSize(0.05);
+            h7_mJpsi_pion_recoil->GetXaxis()->SetTitleSize(0.05);
+
             h7_mJpsi_pion_recoil->Draw();
 
             canvas->SaveAs(savePath + "7_mJpsi_recoil_from_pions_voigt.png");
@@ -476,6 +578,7 @@ void ZcAnalysis::Loop(TString savePath)
         
     }
 
+    // TASK 3.5
     if (task_3_5) {
         TCanvas* canvas = new TCanvas("canvas_mass","canvas_mass",1200,900);
         h8_mass_ee->SetLineColor(kRed);
@@ -492,6 +595,12 @@ void ZcAnalysis::Loop(TString savePath)
         
         double binWidth = h8_mass_ee->GetBinWidth(1);
 
+        h8_mass_ee->SetLineWidth(2);
+        gPad->SetLeftMargin(0.15);
+        gPad->SetBottomMargin(0.15);
+        h8_mass_ee->GetYaxis()->SetTitleSize(0.05);
+        h8_mass_ee->GetXaxis()->SetTitleSize(0.05);
+
         h8_mass_ee->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
 
         h8_mass_ee->Draw();
@@ -507,5 +616,61 @@ void ZcAnalysis::Loop(TString savePath)
         legend->Draw();
         
         canvas->SaveAs(savePath + "8_all_mass_spectra.png");
+    }
+
+    // TASK 3.6
+    if (task_3_6) {
+        TCanvas* c_dalitz = new TCanvas();
+        h9_dalitz->Draw("COLZ");
+
+        // overlay the kinematic boundary
+        const double M  = sqrt_s;      // total CM energy
+        const double m1 = pion_mass;
+        const double m2 = pion_mass;
+        const double m3 = 3.0969;
+
+        std::vector<double> x;
+        std::vector<double> y_min;
+        std::vector<double> y_max;
+
+        for (double s12 = pow(2*pion_mass,2); s12 < pow(M - m3,2); s12 += 0.005)
+        {
+            double sqrt_s12 = sqrt(s12);
+
+            double E2 = (s12 - m1*m1 + m2*m2) / (2*sqrt_s12);
+            double E3 = (M*M - s12 - m3*m3) / (2*sqrt_s12);
+
+            double p2 = sqrt(E2*E2 - m2*m2);
+            double p3 = sqrt(E3*E3 - m3*m3);
+
+            double s23_max = pow(E2+E3,2) - pow(p2-p3,2);
+            double s23_min = pow(E2+E3,2) - pow(p2+p3,2);
+
+            x.push_back(s12);
+            y_min.push_back(s23_min);
+            y_max.push_back(s23_max);
+        }
+
+        TGraph* g_min = new TGraph(x.size(), &x[0], &y_min[0]);
+        TGraph* g_max = new TGraph(x.size(), &x[0], &y_max[0]);
+
+        g_min->SetLineColor(kRed);
+        g_max->SetLineColor(kRed);
+
+        g_min->SetLineWidth(3);
+        g_max->SetLineWidth(3);
+
+        double binWidth = h9_dalitz->GetBinWidth(1);
+
+        h9_dalitz->SetLineWidth(2);
+        gPad->SetLeftMargin(0.15);
+        gPad->SetBottomMargin(0.15);
+        h9_dalitz->GetYaxis()->SetTitleSize(0.05);
+        h9_dalitz->GetXaxis()->SetTitleSize(0.05);
+
+        g_min->Draw("L SAME");
+        g_max->Draw("L SAME");
+
+        c_dalitz->SaveAs(savePath + "9_dalitz_plot.png");
     }
 }
