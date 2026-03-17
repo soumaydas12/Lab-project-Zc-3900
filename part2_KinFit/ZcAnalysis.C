@@ -241,6 +241,13 @@ P4E pe_minus( -pi*sin(theta),0, -pi*cos(theta), Ei );
 // center-of-mass four-vector
 P4E pCMS = pe_plus + pe_minus;
 int selectedEvents = 0;
+
+// problem 4.6
+int Ni_e = 0, Ni_mu = 0;
+
+int N_bhabha_e = 0, N_bhabha_mu = 0;
+int N_conv_e   = 0, N_conv_mu   = 0;
+int N_chi2_e   = 0, N_chi2_mu   = 0;
     //=============================================================================
     // For-loop over all events in the root file
     //=============================================================================
@@ -308,6 +315,9 @@ double cos_pipi = CosTheta(pi_plus, pi_minus);
 
 bool electronEvent = (intNumberElectrons == 2);
 bool muonEvent     = (intNumberMuons == 2);
+// problem 4.6
+if (electronEvent) Ni_e++;
+if (muonEvent)     Ni_mu++;
 
 // problem 4.5
 // fill angular histograms
@@ -348,6 +358,9 @@ if (muonEvent)
 
     if (p_lp > 2.0 || p_lm > 2.0)
         continue;
+    // problem 4.6
+    if (electronEvent) N_bhabha_e++;
+    if (muonEvent)     N_bhabha_mu++;
 // AFTER BHABHA CUT
 if(electronEvent)
     h_mJpsi_e_afterBhabha->Fill(Jpsi_temp.M());
@@ -388,6 +401,10 @@ P4E total = Jpsi + pions;
 // ---- photon conversion rejection ----
 if (cos_epi_minus > 0.95 || cos_pie_minus > 0.95 || cos_pipi > 0.95)
     continue;
+
+// problem 4.6
+if (electronEvent) N_conv_e++;
+if (muonEvent)     N_conv_mu++;
 // AFTER CONVERSION CUT
 
 if(electronEvent)
@@ -420,6 +437,9 @@ h1_Emiss_before->Fill(Emiss);
 // ---------------- APPLY χ² CUT ----------------
 if (chi2 > 40)
     continue;
+// problem 4.6
+if (electronEvent) N_chi2_e++;
+if (muonEvent)     N_chi2_mu++;
 // AFTER χ² CUT
 
 if(electronEvent)
@@ -473,7 +493,43 @@ if (muonEvent)
     // problem 2.4
     std::cout << "Total events: " << nentries << std::endl;
     std::cout << "Selected events: " << selectedEvents << std::endl;
+// problem 4.6
+std::cout << "\n=== ELECTRONS ===" << std::endl;
+std::cout << "Initial: " << Ni_e << std::endl;
+std::cout << "After Bhabha: " << N_bhabha_e 
+          << "  eff = " << (double)N_bhabha_e/Ni_e << std::endl;
+std::cout << "After Conversion: " << N_conv_e 
+          << "  eff = " << (double)N_conv_e/Ni_e << std::endl;
+std::cout << "After Chi2: " << N_chi2_e 
+          << "  eff = " << (double)N_chi2_e/Ni_e << std::endl;
 
+std::cout << "\n=== MUONS ===" << std::endl;
+std::cout << "Initial: " << Ni_mu << std::endl;
+std::cout << "After Bhabha: " << N_bhabha_mu 
+          << "  eff = " << (double)N_bhabha_mu/Ni_mu << std::endl;
+std::cout << "After Conversion: " << N_conv_mu 
+          << "  eff = " << (double)N_conv_mu/Ni_mu << std::endl;
+std::cout << "After Chi2: " << N_chi2_mu 
+          << "  eff = " << (double)N_chi2_mu/Ni_mu << std::endl;
+double Ni_gen_e = 500623.0;
+double Ni_gen_mu = 499377.0;
+
+// efficiencies
+double eff_e = (double)N_chi2_e / Ni_gen_e;
+double eff_mu = (double)N_chi2_mu / Ni_gen_mu;
+
+// uncertainties (binomial)
+double err_e = sqrt(eff_e * (1 - eff_e) / Ni_gen_e);
+double err_mu = sqrt(eff_mu * (1 - eff_mu) / Ni_gen_mu);
+
+// print
+std::cout << "\n=== FINAL EFFICIENCY (MC truth) ===" << std::endl;
+
+std::cout << "Electrons: " 
+          << eff_e << " ± " << err_e << std::endl;
+
+std::cout << "Muons: " 
+          << eff_mu << " ± " << err_mu << std::endl;
 
     //=============================================================================
     // All canvas definitions should be placed here
