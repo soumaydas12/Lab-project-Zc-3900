@@ -1024,5 +1024,80 @@ std::cout << "Width (sigma) = " << sigma << std::endl;
 // save
 c->SaveAs(savePath + "Jpsi_mass_final_combined_fit.png");
 }
-      }
+// problem 5.2
+// ================= SIGNAL EXTRACTION: ELECTRONS =================
+double N_Jpsi_e = 0;
+double N_Jpsi_mu = 0;
+
+{
+TCanvas* c = new TCanvas("c_jpsi_e_fit","c_jpsi_e_fit",1200,900);
+
+h_mJpsi_e_afterChi2->Draw();
+
+TF1* ffit_e = new TF1(
+"ffit_e",
+"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + [3]",
+3.05,3.15
+);
+
+ffit_e->SetParameters(
+500,     // amplitude
+3.097,   // mean
+0.005,   // sigma
+10       // background
+);
+ffit_e->SetParLimits(2, 0.001, 0.02);
+
+h_mJpsi_e_afterChi2->Fit(ffit_e,"R");
+
+// extract yield
+N_Jpsi_e = ffit_e->Integral(3.05,3.15);
+
+std::cout << "N_Jpsi_e = " << N_Jpsi_e << std::endl;
+}
+// ================= SIGNAL EXTRACTION: MUONS =================
+
+{
+TCanvas* c = new TCanvas("c_jpsi_mu_fit","c_jpsi_mu_fit",1200,900);
+
+h_mJpsi_mu_afterChi2->Draw();
+
+TF1* ffit_mu = new TF1(
+"ffit_mu",
+"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + [3]",
+3.05,3.15
+);
+
+ffit_mu->SetParameters(
+500,
+3.097,
+0.005,
+10
+);
+ffit_mu->SetParLimits(2, 0.001, 0.02);
+h_mJpsi_mu_afterChi2->Fit(ffit_mu,"R");
+
+// extract yield
+N_Jpsi_mu = ffit_mu->Integral(3.05,3.15);
+
+std::cout << "N_Jpsi_mu = " << N_Jpsi_mu << std::endl;
+}
+
+// ================= CROSS SECTION =================
+
+double L = 828.4; // pb^-1
+double delta = 0.818;
+double B_e = 0.0594;
+double B_mu = 0.0594;
+
+double sigma_e = N_Jpsi_e / (L * delta * eff_e * B_e);
+double sigma_mu = N_Jpsi_mu / (L * delta * eff_mu * B_mu);
+
+std::cout << "\n=== CROSS SECTIONS ===" << std::endl;
+std::cout << "sigma (e+e-) = " << sigma_e << " pb" << std::endl;
+std::cout << "sigma (mu+mu-) = " << sigma_mu << " pb" << std::endl;
+
+} 
+
+      
 
