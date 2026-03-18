@@ -32,7 +32,7 @@ bool task_2_2 = false;
 bool task_2_3 = false;
 bool task_3_1_and_3_2 = false;
 bool task_3_3 = false;
-bool task_3_5 = false;
+bool task_3_5 = true;
 bool task_3_6 = true;
 
 void ZcAnalysis::Loop(TString savePath)
@@ -167,9 +167,9 @@ void ZcAnalysis::Loop(TString savePath)
     if (task_3_6) {
         h9_dalitz = new TH2D(
             "h_dalitz",
-            "Dalitz Plot; m^{2}(#pi^{+}#pi^{-}); m^{2}(J/#psi #pi)",
-            300, 0, 1.5,
-            200, 9, 18
+            "Dalitz Plot; m^{2}(J/#psi #pi); m^{2}(#pi^{+}#pi^{-})",
+            200, 9, 18,
+            300, 0, 1.5
         );
     }
     
@@ -317,8 +317,8 @@ void ZcAnalysis::Loop(TString savePath)
             double m2_jpsi_pi_plus  = (jpsi + pion_plus).M2();
             double m2_jpsi_pi_minus = (jpsi + pion_minus).M2();
 
-            h9_dalitz->Fill(m2_pipi, m2_jpsi_pi_plus);
-            h9_dalitz->Fill(m2_pipi, m2_jpsi_pi_minus);
+            h9_dalitz->Fill(m2_jpsi_pi_plus, m2_pipi);
+            h9_dalitz->Fill(m2_jpsi_pi_minus, m2_pipi);
         }
 
         //=============================================================================
@@ -629,10 +629,12 @@ void ZcAnalysis::Loop(TString savePath)
         const double m2 = pion_mass;
         const double m3 = 3.0969;
 
-        std::vector<double> x;
-        std::vector<double> y_min;
-        std::vector<double> y_max;
+        std::vector<double> s23_boundary;
+        std::vector<double> s12_boundary;
+        std::vector<double> s23_boundary_max;
+        std::vector<double> s12_boundary_max;
 
+        // Iterate over s12 and compute s23 bounds (use correct physical formula)
         for (double s12 = pow(2*pion_mass,2); s12 < pow(M - m3,2); s12 += 0.005)
         {
             double sqrt_s12 = sqrt(s12);
@@ -646,13 +648,15 @@ void ZcAnalysis::Loop(TString savePath)
             double s23_max = pow(E2+E3,2) - pow(p2-p3,2);
             double s23_min = pow(E2+E3,2) - pow(p2+p3,2);
 
-            x.push_back(s12);
-            y_min.push_back(s23_min);
-            y_max.push_back(s23_max);
+            // Swap axes for display (x = s23, y = s12)
+            s23_boundary.push_back(s23_min);
+            s12_boundary.push_back(s12);
+            s23_boundary_max.push_back(s23_max);
+            s12_boundary_max.push_back(s12);
         }
 
-        TGraph* g_min = new TGraph(x.size(), &x[0], &y_min[0]);
-        TGraph* g_max = new TGraph(x.size(), &x[0], &y_max[0]);
+        TGraph* g_min = new TGraph(s23_boundary.size(), &s23_boundary[0], &s12_boundary[0]);
+        TGraph* g_max = new TGraph(s23_boundary_max.size(), &s23_boundary_max[0], &s12_boundary_max[0]);
 
         g_min->SetLineColor(kRed);
         g_max->SetLineColor(kRed);
