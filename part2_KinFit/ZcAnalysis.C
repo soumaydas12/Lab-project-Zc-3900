@@ -1093,10 +1093,23 @@ double B_mu = 0.0594;
 double sigma_e = N_Jpsi_e / (L * delta * eff_e * B_e);
 double sigma_mu = N_Jpsi_mu / (L * delta * eff_mu * B_mu);
 
-std::cout << "\n=== CROSS SECTIONS ===" << std::endl;
-std::cout << "sigma (e+e-) = " << sigma_e << " pb" << std::endl;
-std::cout << "sigma (mu+mu-) = " << sigma_mu << " pb" << std::endl;
+// ===== UNCERTAINTY (STATISTICAL) =====
+double err_N_e = sqrt(N_Jpsi_e);
+double err_N_mu = sqrt(N_Jpsi_mu);
 
+double err_sigma_e = sigma_e * (err_N_e / N_Jpsi_e);
+double err_sigma_mu = sigma_mu * (err_N_mu / N_Jpsi_mu);
+
+// ===== PRINT RESULTS =====
+std::cout << "\n=== CROSS SECTIONS ===" << std::endl;
+
+std::cout << "sigma (e+e-) = " 
+          << sigma_e << " ± " << err_sigma_e 
+          << " pb" << std::endl;
+
+std::cout << "sigma (mu+mu-) = " 
+          << sigma_mu << " ± " << err_sigma_mu 
+          << " pb" << std::endl;
 } 
 
       
