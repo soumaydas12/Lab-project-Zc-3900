@@ -220,6 +220,7 @@ TH1D* h_mJpsi_recoil_afterChi2 = new TH1D(
 "J/#psi invariant mass after all selection cuts (recoil);Mass [GeV];Events",
 100,2.9,3.2
 );
+
 //Problem 2.4
 double m_jpsi = 3.0969;  // Gev
 double m_pi = 0.13957;   // GeV
@@ -495,6 +496,9 @@ if (muonEvent)
     h1_mJpsi_mu->Fill(Jpsi.M());
 }// end of muon loop
 } // end of event loop
+// problem 5.1
+TH1D* h_mJpsi_combined = (TH1D*)h_mJpsi_e_afterChi2->Clone("h_mJpsi_combined");
+h_mJpsi_combined->Add(h_mJpsi_mu_afterChi2);
         //=============================================================================
         // End of selection
         //=============================================================================
@@ -971,6 +975,50 @@ leg_chi2->AddEntry(h_mJpsi_recoil_afterChi2,"Recoil(#pi^{+}#pi^{-})","l");
 leg_chi2->Draw();
 
 canvas_chi2->SaveAs(savePath + "Jpsi_mass_after_all_cuts.png");
+}
+// problem 5.1
+{
+TCanvas* c = new TCanvas("c_jpsi_final","c_jpsi_final",1200,900);
+c->SetLeftMargin(0.15);
+
+// axis
+double binWidth = h_mJpsi_combined->GetBinWidth(1);
+h_mJpsi_combined->GetYaxis()->SetTitle(
+Form("Events / %.3f GeV", binWidth)
+);
+
+// draw
+h_mJpsi_combined->SetLineColor(kBlack);
+h_mJpsi_combined->Draw();
+
+// ===== FIT FUNCTION =====
+TF1* ffit = new TF1(
+"ffit",
+"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + \
+ [3]*exp(-(x-[4])*(x-[4])/(2*[5]*[5])) + [6]",
+3.05, 3.15   // IMPORTANT: restricted range
+);
+
+// initial params (CRUCIAL)
+ffit->SetParameters(
+800, 3.097, 0.008,   // narrow
+300, 3.097, 0.02,    // broad
+5                    // background
+);
+
+// fit
+h_mJpsi_combined->Fit(ffit,"R");
+
+// ===== EXTRACT RESULTS =====
+double mass  = ffit->GetParameter(1);
+double sigma = ffit->GetParameter(2);
+
+std::cout << "\n=== FINAL J/psi FIT ===" << std::endl;
+std::cout << "Mass = " << mass << std::endl;
+std::cout << "Width (sigma) = " << sigma << std::endl;
+
+// save
+c->SaveAs(savePath + "Jpsi_mass_final_combined_fit.png");
 }
       }
 
