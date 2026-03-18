@@ -1009,6 +1009,10 @@ ffit->SetParameters(
 // fit
 h_mJpsi_combined->Fit(ffit,"R");
 
+
+ffit->SetRange(2.9, 3.2);
+ffit->Draw("same");
+
 // ===== EXTRACT RESULTS =====
 double mass  = ffit->GetParameter(1);
 double sigma = ffit->GetParameter(2);
