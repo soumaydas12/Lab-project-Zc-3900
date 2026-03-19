@@ -532,8 +532,8 @@ double Ni_gen_e = 500623.0;
 double Ni_gen_mu = 499377.0;
 
 // efficiencies
-double eff_e = (double)N_chi2_e / Ni_gen_e;
-double eff_mu = (double)N_chi2_mu / Ni_gen_mu;
+double eff_e = 0.463504;
+double eff_mu = 0.538273;
 
 // uncertainties (binomial)
 double err_e = sqrt(eff_e * (1 - eff_e) / Ni_gen_e);
@@ -1224,6 +1224,24 @@ double err_N_mu = sqrt(N_Jpsi_mu);
 
 double err_sigma_e = sigma_e * (err_N_e / N_Jpsi_e);
 double err_sigma_mu = sigma_mu * (err_N_mu / N_Jpsi_mu);
+
+// ================= COMBINED CROSS SECTION =================
+
+// weights (inverse variance)
+double w_e  = 1.0 / (err_sigma_e * err_sigma_e);
+double w_mu = 1.0 / (err_sigma_mu * err_sigma_mu);
+
+// combined value
+double sigma_comb = (sigma_e * w_e + sigma_mu * w_mu) / (w_e + w_mu);
+
+// combined uncertainty
+double err_comb = sqrt(1.0 / (w_e + w_mu));
+
+std::cout << "\n=== COMBINED BORN CROSS SECTION ===" << std::endl;
+std::cout << "sigma_B (combined) = "
+          << sigma_comb << " ± " << err_comb
+          << " pb" << std::endl;
+
 
 // ===== PRINT RESULTS =====
 std::cout << "\n=== CROSS SECTIONS ===" << std::endl;
