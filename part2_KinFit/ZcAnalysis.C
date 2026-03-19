@@ -87,8 +87,23 @@ TH1D* h1_mJpsi_recoil = new TH1D(
 TH2D* h2_dalitz = new TH2D(
 "h2_dalitz",
 "Dalitz plot; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
-300,0,1.5,
-300,9,18
+150,0,1.5,
+150,9,18
+);
+
+// ===== NEW HISTOGRAMS =====
+TH2D* h2_dalitz_sig = new TH2D(
+"h2_dalitz_sig",
+"Dalitz (signal); m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
+150,0,1.5,
+150,9,18
+);
+
+TH2D* h2_dalitz_sb = new TH2D(
+"h2_dalitz_sb",
+"Dalitz (sideband); m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
+150,0,1.5,
+150,9,18
 );
 // problem 4.1
 TH1D* h1_mJpsi_pipi = new TH1D(
@@ -480,15 +495,55 @@ for (int i = 0; i < intNumberGoodPhotons; i++)
     h1_Egamma->Fill(Egamma);
 }
 // Dalitz plot using 4C fit four-vectors
+// problem 6.1
+// ===== DALITZ WITH SIDEBANDS =====
 
 double m2_pipi = pions.M2();
-
 double m2_jpsipi1 = (Jpsi + pi_plus).M2();
 double m2_jpsipi2 = (Jpsi + pi_minus).M2();
 
+double mll = Jpsi.M();
+
+// define regions
+bool isSignal  = (mll > 3.08 && mll < 3.12);
+bool isLeftSB  = (mll > 3.00 && mll < 3.06);
+bool isRightSB = (mll > 3.14 && mll < 3.20);
+
+// ALWAYS fill original
 h2_dalitz->Fill(m2_pipi, m2_jpsipi1);
 h2_dalitz->Fill(m2_pipi, m2_jpsipi2);
- 
+
+// signal only
+if (isSignal)
+{
+    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi1);
+    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi2);
+}
+
+// sidebands
+if (isLeftSB || isRightSB)
+{
+    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi1);
+    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi2);
+}
+
+// ALWAYS fill original Dalitz (for comparison)
+h2_dalitz->Fill(m2_pipi, m2_jpsipi1);
+h2_dalitz->Fill(m2_pipi, m2_jpsipi2);
+
+// signal-only
+if (isSignal)
+{
+    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi1);
+    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi2);
+}
+
+// sidebands
+if (isLeftSB || isRightSB)
+{
+    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi1);
+    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi2);
+}
     // // problem 3.0
    if (electronEvent)
 {
@@ -500,6 +555,18 @@ if (muonEvent)
     h1_mJpsi_mu->Fill(Jpsi.M());
 }// end of muon loop
 } // end of event loop
+
+// problem 6.1
+// ===== SIDEBAND SUBTRACTION =====
+double scale = 0.04 / 0.12;
+
+TH2D* h2_dalitz_final = (TH2D*)h2_dalitz_sig->Clone("h2_dalitz_final");
+
+// scale sideband first
+h2_dalitz_sb->Scale(scale);
+
+// subtract
+h2_dalitz_final->Add(h2_dalitz_sb, -1.0);
 // problem 5.1
 TH1D* h_mJpsi_combined = (TH1D*)h_mJpsi_e_afterChi2->Clone("h_mJpsi_combined");
 h_mJpsi_combined->Add(h_mJpsi_mu_afterChi2);
@@ -523,7 +590,7 @@ std::cout << "After Chi2: " << N_chi2_e
 std::cout << "\n=== MUONS ===" << std::endl;
 std::cout << "Initial: " << Ni_mu << std::endl;
 std::cout << "After Bhabha: " << N_bhabha_mu 
-          << "  eff = " << (double)N_bhabha_mu/Ni_mu << std::endl;
+          << "  eff = " << (double)N_bhabha_mu/Ni_mu << std::endl;   // check later
 std::cout << "After Conversion: " << N_conv_mu
           << "  eff = " << (double)N_bhabha_mu/Ni_mu << std::endl;
 std::cout << "After Chi2: " << N_chi2_mu 
@@ -755,6 +822,27 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
     dalitz_lower->Draw("same");
 
     canvas->SaveAs(savePath + "Dalitz_plot.png");
+}
+// problem 6.1
+// ===== DEBUG: SIGNAL ONLY =====
+{
+    TCanvas* c1 = new TCanvas("c_sig","c_sig",1200,900);
+    h2_dalitz_sig->Draw("COLZ");
+    c1->SaveAs(savePath + "Dalitz_signal_only.png");
+}
+
+// ===== DEBUG: SIDEBAND ONLY =====
+{
+    TCanvas* c2 = new TCanvas("c_sb","c_sb",1200,900);
+    h2_dalitz_sb->Draw("COLZ");
+    c2->SaveAs(savePath + "Dalitz_sideband_only.png");
+}
+
+// ===== FINAL SUBTRACTED =====
+{
+    TCanvas* c3 = new TCanvas("c_final","c_final",1200,900);
+    h2_dalitz_final->Draw("COLZ");
+    c3->SaveAs(savePath + "Dalitz_sideband_subtracted.png");
 }
 // problem 4.1
 {
