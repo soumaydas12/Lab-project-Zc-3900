@@ -371,7 +371,7 @@ if(muonEvent)
 
 P4E recoil_bhabha = pCMS - pions_temp;
 
-if (electronEvent)
+if (electronEvent || muonEvent)
     h_mJpsi_recoil_afterBhabha->Fill(recoil_bhabha.M());
 // invariant mass after bhabha cut
 h1_mJpsi_pipi_afterBhabha->Fill(total_temp.M());
@@ -399,11 +399,15 @@ P4E pions = pi_plus + pi_minus;
 P4E total = Jpsi + pions;
 // problem 4.5
 // ---- photon conversion rejection ----
+bool passConversion = true;
+
 if (electronEvent)
 {
     if (cos_epi_minus > 0.98 || cos_pie_minus > 0.98)
-        continue;
+        passConversion = false;
 }
+
+if (!passConversion) continue;
 
 // problem 4.6
 // electrons → affected by conversion cut
@@ -421,7 +425,7 @@ if(muonEvent)
 
 P4E recoil_conv = pCMS - pions;
 
-if (electronEvent)
+if (electronEvent || muonEvent)
     h_mJpsi_recoil_afterConversion->Fill(recoil_conv.M());
 // fill invariant mass after conversion cut
 h1_mJpsi_pipi_afterConversion->Fill(total.M());
@@ -458,7 +462,7 @@ if(muonEvent)
 
 P4E recoil_chi2 = pCMS - pions;
 
-if (electronEvent)
+if (electronEvent || muonEvent)
     h_mJpsi_recoil_afterChi2->Fill(recoil_chi2.M());
 selectedEvents++;   
 
@@ -520,7 +524,7 @@ std::cout << "\n=== MUONS ===" << std::endl;
 std::cout << "Initial: " << Ni_mu << std::endl;
 std::cout << "After Bhabha: " << N_bhabha_mu 
           << "  eff = " << (double)N_bhabha_mu/Ni_mu << std::endl;
-std::cout << "After Conversion: " << N_bhabha_mu 
+std::cout << "After Conversion: " << N_conv_mu
           << "  eff = " << (double)N_bhabha_mu/Ni_mu << std::endl;
 std::cout << "After Chi2: " << N_chi2_mu 
           << "  eff = " << (double)N_chi2_mu/Ni_mu << std::endl;
@@ -909,9 +913,18 @@ h_mJpsi_e_afterBhabha->SetLineColor(kRed);
 h_mJpsi_mu_afterBhabha->SetLineColor(kBlue);
 h_mJpsi_recoil_afterBhabha->SetLineColor(kMagenta);
 
-h_mJpsi_e_afterBhabha->DrawNormalized();
-h_mJpsi_mu_afterBhabha->DrawNormalized("same");
-h_mJpsi_recoil_afterBhabha->DrawNormalized("same");
+double max_e_b = h_mJpsi_e_afterBhabha->GetMaximum();
+double max_mu_b = h_mJpsi_mu_afterBhabha->GetMaximum();
+double max_recoil_b = h_mJpsi_recoil_afterBhabha->GetMaximum();
+
+double max_all_b = std::max({max_e_b, max_mu_b, max_recoil_b});
+
+// add margin
+h_mJpsi_e_afterBhabha->SetMaximum(1.2 * max_all_b);
+
+h_mJpsi_e_afterBhabha->Draw();
+h_mJpsi_mu_afterBhabha->Draw("same");
+h_mJpsi_recoil_afterBhabha->Draw("same");
 
 TLegend* leg = new TLegend(0.15,0.7,0.35,0.85);
 leg->AddEntry(h_mJpsi_e_afterBhabha,"e^{+}e^{-}","l");
@@ -929,9 +942,18 @@ h_mJpsi_e_afterConversion->SetLineColor(kRed);
 h_mJpsi_mu_afterConversion->SetLineColor(kBlue);
 h_mJpsi_recoil_afterConversion->SetLineColor(kMagenta);
 
-h_mJpsi_e_afterConversion->DrawNormalized();
-h_mJpsi_mu_afterConversion->DrawNormalized("same");
-h_mJpsi_recoil_afterConversion->DrawNormalized("same");
+double max_e_c = h_mJpsi_e_afterConversion->GetMaximum();
+double max_mu_c = h_mJpsi_mu_afterConversion->GetMaximum();
+double max_recoil_c = h_mJpsi_recoil_afterConversion->GetMaximum();
+
+double max_all_c = std::max({max_e_c, max_mu_c, max_recoil_c});
+
+// add margin
+h_mJpsi_e_afterConversion->SetMaximum(1.2 * max_all_c);
+
+h_mJpsi_e_afterConversion->Draw();
+h_mJpsi_mu_afterConversion->Draw("same");
+h_mJpsi_recoil_afterConversion->Draw("same");
 
 TLegend* leg = new TLegend(0.15,0.7,0.35,0.85);
 leg->AddEntry(h_mJpsi_e_afterConversion,"e^{+}e^{-}","l");
@@ -942,6 +964,16 @@ leg->Draw();
 canvas->SaveAs(savePath + "Jpsi_mass_afterConversion.png");
 // after chi^2 cut
 }
+std::cout << "\n=== INTEGRALS AFTER CHI2 ===" << std::endl;
+
+std::cout << "Electrons: "
+          << h_mJpsi_e_afterChi2->Integral() << std::endl;
+
+std::cout << "Muons: "
+          << h_mJpsi_mu_afterChi2->Integral() << std::endl;
+
+std::cout << "Recoil: "
+          << h_mJpsi_recoil_afterChi2->Integral() << std::endl;
 {
 
 TCanvas* canvas_chi2 = new TCanvas("canvas_chi2_mass","canvas_chi2_mass",1200,900);
@@ -954,7 +986,7 @@ h_mJpsi_recoil_afterChi2->SetLineColor(kMagenta);
 
 h_mJpsi_e_afterChi2->SetLineWidth(2);
 h_mJpsi_mu_afterChi2->SetLineWidth(2);
-h_mJpsi_recoil_afterChi2->SetLineWidth(2);
+h_mJpsi_recoil_afterChi2->SetLineWidth(3);
 
 // set y-axis title
 double binWidth = h_mJpsi_e_afterChi2->GetBinWidth(1);
@@ -963,10 +995,18 @@ Form("Events / %.3f GeV", binWidth)
 );
 
 // draw spectra
-// draw normalized 
-h_mJpsi_e_afterChi2->DrawNormalized();
-h_mJpsi_mu_afterChi2->DrawNormalized("same");
-h_mJpsi_recoil_afterChi2->DrawNormalized("same");
+double max_e = h_mJpsi_e_afterChi2->GetMaximum();
+double max_mu = h_mJpsi_mu_afterChi2->GetMaximum();
+double max_recoil = h_mJpsi_recoil_afterChi2->GetMaximum();
+
+double max_all = std::max({max_e, max_mu, max_recoil});
+
+// add some margin (20%)
+h_mJpsi_e_afterChi2->SetMaximum(1.2 * max_all);
+
+h_mJpsi_e_afterChi2->Draw();
+h_mJpsi_mu_afterChi2->Draw("same");
+h_mJpsi_recoil_afterChi2->Draw("same");
 // legend
 TLegend* leg_chi2 = new TLegend(0.15,0.70,0.35,0.85);
 leg_chi2->AddEntry(h_mJpsi_e_afterChi2,"e^{+}e^{-}","l");
