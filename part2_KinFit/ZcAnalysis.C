@@ -414,7 +414,7 @@ if (!passConversion) continue;
 if (electronEvent) N_conv_e++;
 
 // muons → unchanged from Bhabha stage
-//if (muonEvent) N_conv_mu++;
+if (muonEvent) N_conv_mu++;
 // AFTER CONVERSION CUT
 
 if(electronEvent)
@@ -1016,6 +1016,130 @@ leg_chi2->Draw();
 
 canvas_chi2->SaveAs(savePath + "Jpsi_mass_after_all_cuts.png");
 }
+
+{
+TCanvas* c = new TCanvas("c_jpsi_e_voigt","c_jpsi_e_voigt",1200,900);
+
+double binWidth = h_mJpsi_e_afterChi2->GetBinWidth(1);
+
+h_mJpsi_e_afterChi2->Draw();
+
+TF1* ffit_e_voigt = new TF1(
+    "ffit_e_voigt",
+    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f + [4]", binWidth),
+    3.05, 3.15
+);
+
+ffit_e_voigt->SetParameters(500, 3.097, 0.008, 0.000093, 10);
+ffit_e_voigt->FixParameter(3, 0.000093);
+
+h_mJpsi_e_afterChi2->Fit(ffit_e_voigt, "R");
+
+ffit_e_voigt->SetRange(2.9, 3.2);
+ffit_e_voigt->SetLineColor(kRed);
+ffit_e_voigt->Draw("same");
+
+c->SaveAs(savePath + "Jpsi_e_voigt.png");
+}
+{
+TCanvas* c = new TCanvas("c_jpsi_mu_voigt","c_jpsi_mu_voigt",1200,900);
+
+double binWidth = h_mJpsi_mu_afterChi2->GetBinWidth(1);
+
+h_mJpsi_mu_afterChi2->Draw();
+
+TF1* ffit_mu_voigt = new TF1(
+    "ffit_mu_voigt",
+    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f + [4]", binWidth),
+    3.05, 3.15
+);
+
+ffit_mu_voigt->SetParameters(500, 3.097, 0.006, 0.000093, 10);
+ffit_mu_voigt->FixParameter(3, 0.000093);
+
+h_mJpsi_mu_afterChi2->Fit(ffit_mu_voigt, "R");
+
+ffit_mu_voigt->SetRange(2.9, 3.2);
+ffit_mu_voigt->SetLineColor(kBlue);
+ffit_mu_voigt->Draw("same");
+
+c->SaveAs(savePath + "Jpsi_mu_voigt.png");
+}
+{
+TCanvas* c = new TCanvas("c_jpsi_recoil_voigt","c_jpsi_recoil_voigt",1200,900);
+
+double binWidth = h_mJpsi_recoil_afterChi2->GetBinWidth(1);
+
+h_mJpsi_recoil_afterChi2->Draw();
+
+TF1* ffit_recoil_voigt = new TF1(
+    "ffit_recoil_voigt",
+    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f + [4]", binWidth),
+    3.05, 3.15
+);
+
+ffit_recoil_voigt->SetParameters(500, 3.097, 0.010, 0.000093, 20);
+ffit_recoil_voigt->FixParameter(3, 0.000093);
+
+h_mJpsi_recoil_afterChi2->Fit(ffit_recoil_voigt, "R");
+
+ffit_recoil_voigt->SetRange(2.9, 3.2);
+ffit_recoil_voigt->SetLineColor(kMagenta);
+ffit_recoil_voigt->Draw("same");
+
+c->SaveAs(savePath + "Jpsi_recoil_voigt.png");
+}
+{
+TCanvas* c = new TCanvas("c_jpsi_combined_voigt","c_jpsi_combined_voigt",1200,900);
+
+double binWidth = h_mJpsi_combined->GetBinWidth(1);
+
+h_mJpsi_combined->SetLineColor(kBlack);
+h_mJpsi_combined->Draw();
+
+TF1* ffit_combined_voigt = new TF1(
+    "ffit_combined_voigt",
+    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f + [4]", binWidth),
+    3.05, 3.15
+);
+
+// slightly higher normalization since stats are larger
+ffit_combined_voigt->SetParameters(1000, 3.097, 0.007, 0.000093, 10);
+ffit_combined_voigt->FixParameter(3, 0.000093);
+
+h_mJpsi_combined->Fit(ffit_combined_voigt, "R");
+
+// extend drawing
+ffit_combined_voigt->SetRange(2.9, 3.2);
+ffit_combined_voigt->SetLineColor(kRed);
+ffit_combined_voigt->SetLineWidth(2);
+ffit_combined_voigt->Draw("same");
+
+c->SaveAs(savePath + "Jpsi_combined_voigt.png");
+}
+{
+int b1e = h_mJpsi_e_afterChi2->FindBin(3.05);
+int b2e = h_mJpsi_e_afterChi2->FindBin(3.15);
+double N_e = h_mJpsi_e_afterChi2->Integral(b1e, b2e);
+
+int b1m = h_mJpsi_mu_afterChi2->FindBin(3.05);
+int b2m = h_mJpsi_mu_afterChi2->FindBin(3.15);
+double N_mu = h_mJpsi_mu_afterChi2->Integral(b1m, b2m);
+
+int b1r = h_mJpsi_recoil_afterChi2->FindBin(3.05);
+int b2r = h_mJpsi_recoil_afterChi2->FindBin(3.15);
+double N_recoil = h_mJpsi_recoil_afterChi2->Integral(b1r, b2r);
+
+int b1c = h_mJpsi_combined->FindBin(3.05);
+int b2c = h_mJpsi_combined->FindBin(3.15);
+double N_combined = h_mJpsi_combined->Integral(b1c, b2c);
+
+std::cout << "\n=== FINAL EVENT YIELDS ===" << std::endl;
+std::cout << "Electrons: " << N_e << std::endl;
+std::cout << "Muons: " << N_mu << std::endl;
+std::cout << "Recoil: " << N_recoil << std::endl;
+std::cout << "Combined: " << N_combined << std::endl;
+}
 // problem 5.1
 {
 TCanvas* c = new TCanvas("c_jpsi_final","c_jpsi_final",1200,900);
@@ -1032,30 +1156,38 @@ h_mJpsi_combined->SetLineColor(kBlack);
 h_mJpsi_combined->Draw();
 
 // ===== FIT FUNCTION =====
-TF1* ffit = new TF1(
-"ffit",
-"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + \
- [3]*exp(-(x-[4])*(x-[4])/(2*[5]*[5])) + [6]",
-3.05, 3.15   // IMPORTANT: restricted range
+// ===== VOIGT FIT FUNCTION =====
+TF1* ffit_voigt = new TF1(
+    "ffit_voigt",
+    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f + [4]", binWidth),
+    3.05, 3.15
 );
 
-// initial params (CRUCIAL)
-ffit->SetParameters(
-800, 3.097, 0.008,   // narrow
-300, 3.097, 0.02,    // broad
-5                    // background
+// Initial parameters
+ffit_voigt->SetParameters(
+    1000,      // normalization (adjust if needed)
+    3.097,     // mean (J/psi mass)
+    0.008,     // sigma (~8 MeV resolution)
+    0.000093,  // gamma (J/psi natural width)
+    5          // background
 );
 
-// fit
-h_mJpsi_combined->Fit(ffit,"R");
+// FIX gamma (very important)
+ffit_voigt->FixParameter(3, 0.000093);
 
+// Fit
+h_mJpsi_combined->Fit(ffit_voigt, "R");
 
-ffit->SetRange(2.9, 3.2);
-ffit->Draw("same");
+ffit_voigt->SetRange(2.9, 3.2);
+
+// Draw
+ffit_voigt->SetLineColor(kRed);
+ffit_voigt->SetLineWidth(2);
+ffit_voigt->Draw("same");
 
 // ===== EXTRACT RESULTS =====
-double mass  = ffit->GetParameter(1);
-double sigma = ffit->GetParameter(2);
+double mass  = ffit_voigt->GetParameter(1);
+double sigma = ffit_voigt->GetParameter(2);
 
 std::cout << "\n=== FINAL J/psi FIT ===" << std::endl;
 std::cout << "Mass = " << mass << std::endl;
@@ -1064,65 +1196,18 @@ std::cout << "Width (sigma) = " << sigma << std::endl;
 // save
 c->SaveAs(savePath + "Jpsi_mass_final_combined_fit.png");
 }
-// problem 5.2
-// ================= SIGNAL EXTRACTION: ELECTRONS =================
-double N_Jpsi_e = 0;
-double N_Jpsi_mu = 0;
+// ================= SIGNAL EXTRACTION FROM HISTOGRAM =================
 
-{
-TCanvas* c = new TCanvas("c_jpsi_e_fit","c_jpsi_e_fit",1200,900);
+int b1e = h_mJpsi_e_afterChi2->FindBin(3.05);
+int b2e = h_mJpsi_e_afterChi2->FindBin(3.15);
+double N_Jpsi_e = h_mJpsi_e_afterChi2->Integral(b1e, b2e);
 
-h_mJpsi_e_afterChi2->Draw();
-
-TF1* ffit_e = new TF1(
-"ffit_e",
-"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + [3]",
-3.05,3.15
-);
-
-ffit_e->SetParameters(
-500,     // amplitude
-3.097,   // mean
-0.005,   // sigma
-10       // background
-);
-ffit_e->SetParLimits(2, 0.001, 0.02);
-
-h_mJpsi_e_afterChi2->Fit(ffit_e,"R");
-
-// extract yield
-N_Jpsi_e = ffit_e->Integral(3.05,3.15);
+int b1m = h_mJpsi_mu_afterChi2->FindBin(3.05);
+int b2m = h_mJpsi_mu_afterChi2->FindBin(3.15);
+double N_Jpsi_mu = h_mJpsi_mu_afterChi2->Integral(b1m, b2m);
 
 std::cout << "N_Jpsi_e = " << N_Jpsi_e << std::endl;
-}
-// ================= SIGNAL EXTRACTION: MUONS =================
-
-{
-TCanvas* c = new TCanvas("c_jpsi_mu_fit","c_jpsi_mu_fit",1200,900);
-
-h_mJpsi_mu_afterChi2->Draw();
-
-TF1* ffit_mu = new TF1(
-"ffit_mu",
-"[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + [3]",
-3.05,3.15
-);
-
-ffit_mu->SetParameters(
-500,
-3.097,
-0.005,
-10
-);
-ffit_mu->SetParLimits(2, 0.001, 0.02);
-h_mJpsi_mu_afterChi2->Fit(ffit_mu,"R");
-
-// extract yield
-N_Jpsi_mu = ffit_mu->Integral(3.05,3.15);
-
 std::cout << "N_Jpsi_mu = " << N_Jpsi_mu << std::endl;
-}
-
 // ================= CROSS SECTION =================
 
 double L = 828.4; // pb^-1
