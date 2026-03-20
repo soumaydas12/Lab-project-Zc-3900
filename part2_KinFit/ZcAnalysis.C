@@ -1425,7 +1425,7 @@ h_mJpsi_combined->Draw();
 // ===== VOIGT FIT FUNCTION =====
 TF1* ffit_voigt = new TF1(
     "ffit_voigt",
-    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f + [4]", binWidth),
+    Form("[0]*TMath::Voigt(x-[1],[2],[3])*%f + [4] + [5]*x", binWidth),
     3.05, 3.15
 );
 
@@ -1458,7 +1458,16 @@ double sigma = ffit_voigt->GetParameter(2);
 std::cout << "\n=== FINAL J/psi FIT ===" << std::endl;
 std::cout << "Mass = " << mass << std::endl;
 std::cout << "Width (sigma) = " << sigma << std::endl;
+// ===== MASS TENSION =====
+double err_mass = ffit_voigt->GetParError(1);
+double m_PDG = 3.0969; // GeV
 
+double tension_mass = (mass - m_PDG) / err_mass;
+
+std::cout << "\n=== MASS TENSION ===" << std::endl;
+std::cout << "Measured mass = " << mass << " ± " << err_mass << std::endl;
+std::cout << "PDG mass = " << m_PDG << std::endl;
+std::cout << "Tension = " << tension_mass << " sigma" << std::endl;
 // save
 c->SaveAs(savePath + "Jpsi_mass_final_combined_fit.png");
 }
@@ -1508,6 +1517,41 @@ std::cout << "sigma_B (combined) = "
           << sigma_comb << " ± " << err_comb
           << " pb" << std::endl;
 
+// ================= TENSION WITH PAPER =================
+
+// Reference values from paper
+double sigma_ref_e  = 60.7;
+double err_ref_e    = 2.9;
+
+double sigma_ref_mu = 64.4;
+double err_ref_mu   = 2.4;
+
+double sigma_ref_comb = 62.9;
+double err_ref_comb   = 1.9;
+
+// --- Electron channel tension ---
+double err_tot_e = sqrt(err_sigma_e*err_sigma_e + err_ref_e*err_ref_e);
+double tension_e = (sigma_e - sigma_ref_e) / err_tot_e;
+
+// --- Muon channel tension ---
+double err_tot_mu = sqrt(err_sigma_mu*err_sigma_mu + err_ref_mu*err_ref_mu);
+double tension_mu = (sigma_mu - sigma_ref_mu) / err_tot_mu;
+
+// --- Combined tension ---
+double err_tot_comb = sqrt(err_comb*err_comb + err_ref_comb*err_ref_comb);
+double tension_comb = (sigma_comb - sigma_ref_comb) / err_tot_comb;
+
+// ===== PRINT RESULTS =====
+std::cout << "\n=== TENSION WITH PAPER ===" << std::endl;
+
+std::cout << "Electron channel tension = "
+          << tension_e << " sigma" << std::endl;
+
+std::cout << "Muon channel tension = "
+          << tension_mu << " sigma" << std::endl;
+
+std::cout << "Combined tension = "
+          << tension_comb << " sigma" << std::endl;
 
 // ===== PRINT RESULTS =====
 std::cout << "\n=== CROSS SECTIONS ===" << std::endl;
