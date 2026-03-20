@@ -267,7 +267,36 @@ TH1D* h_mJpsi_recoil_afterChi2 = new TH1D(
 "J/#psi invariant mass after all selection cuts (recoil);Mass [GeV];Events",
 1000,0.0,3.5
 );
+// problem 6.3
+// --- J/psi pi mass ---
+TH1D* h_mJpsipi = new TH1D(
+    "h_mJpsipi",
+    "M(J/#psi #pi^{#pm});M_{J/#psi#pi} [GeV];Events",
+    200, 3.2, 4.5
+);
 
+TH1D* h_mJpsipi_sig = new TH1D(
+    "h_mJpsipi_sig",
+    "M(J/#psi #pi^{#pm}) signal;M_{J/#psi#pi};Events",
+    200, 3.2, 4.5
+);
+
+TH1D* h_mJpsipi_sb = new TH1D(
+    "h_mJpsipi_sb",
+    "M(J/#psi #pi^{#pm}) sideband;M_{J/#psi#pi};Events",
+    200, 3.2, 4.5
+);
+TH1D* h_mJpsipi_max_sig = new TH1D(
+    "h_mJpsipi_max_sig",
+    "Max M(J/#psi#pi);M_{max};Events",
+    200, 3.2, 4.5
+);
+
+TH1D* h_mJpsipi_max_sb = new TH1D(
+    "h_mJpsipi_max_sb",
+    "Max M(J/#psi#pi) SB;M_{max};Events",
+    200, 3.2, 4.5
+);
 //Problem 2.4
 double m_jpsi = 3.0969;  // Gev
 double m_pi = 0.13957;   // GeV
@@ -296,6 +325,7 @@ int Ni_e = 0, Ni_mu = 0;
 int N_bhabha_e = 0, N_bhabha_mu = 0;
 int N_conv_e   = 0, N_conv_mu   = 0;
 int N_chi2_e   = 0, N_chi2_mu   = 0;
+double N_Zc = 0;
     //=============================================================================
     // For-loop over all events in the root file
     //=============================================================================
@@ -503,8 +533,7 @@ if (electronEvent)
 
 // problem 4.6
 // electrons → affected by conversion cut
-if (electronEvent) N_conv_e++;
-
+if (electronEvent && passConversion) N_conv_e++;
 // muons → unchanged from Bhabha stage
 if (muonEvent) N_conv_mu++;
 // AFTER CONVERSION CUT
@@ -576,13 +605,41 @@ for (int i = 0; i < intNumberGoodPhotons; i++)
 double m2_pipi = pions.M2();
 double m2_jpsipi1 = (Jpsi + pi_plus).M2();
 double m2_jpsipi2 = (Jpsi + pi_minus).M2();
-
+// problem 6.1
+double m_jpsipi1 = sqrt(m2_jpsipi1);
+double m_jpsipi2 = sqrt(m2_jpsipi2);
+double m_max = std::max(m_jpsipi1, m_jpsipi2);
 double mll = Jpsi.M();
 
 // define regions
 bool isSignal  = (mll > 3.08 && mll < 3.12);
 bool isLeftSB  = (mll > 3.00 && mll < 3.06);
 bool isRightSB = (mll > 3.14 && mll < 3.20);
+
+if (isSignal)
+    h_mJpsipi_max_sig->Fill(m_max);
+
+if (isLeftSB || isRightSB)
+    h_mJpsipi_max_sb->Fill(m_max);
+
+// fill inclusive (optional but useful)
+h_mJpsipi->Fill(m_jpsipi1);
+h_mJpsipi->Fill(m_jpsipi2);
+
+// signal region
+if (isSignal)
+{
+    h_mJpsipi_sig->Fill(m_jpsipi1);
+    h_mJpsipi_sig->Fill(m_jpsipi2);
+}
+
+// sideband
+if (isLeftSB || isRightSB)
+{
+    h_mJpsipi_sb->Fill(m_jpsipi1);
+    h_mJpsipi_sb->Fill(m_jpsipi2);
+}
+
 
 // ===== DALITZ WITH CORRECT AXIS ORIENTATION =====
 
@@ -618,6 +675,13 @@ if (muonEvent)
 // ===== SIDEBAND SUBTRACTION =====
 double scale = 0.04 / 0.12;
 
+TH1D* h_mJpsipi_max_final =
+    (TH1D*)h_mJpsipi_max_sig->Clone("h_mJpsipi_max_final");
+
+h_mJpsipi_max_sb->Scale(scale);
+h_mJpsipi_max_final->Add(h_mJpsipi_max_sb, -1.0);
+
+
 TH2D* h2_dalitz_final = (TH2D*)h2_dalitz_sig->Clone("h2_dalitz_final");
 
 // scale sideband first
@@ -625,6 +689,11 @@ h2_dalitz_sb->Scale(scale);
 
 // subtract
 h2_dalitz_final->Add(h2_dalitz_sb, -1.0);
+// problem 6.1
+TH1D* h_mJpsipi_final = (TH1D*)h_mJpsipi_sig->Clone("h_mJpsipi_final");
+
+h_mJpsipi_sb->Scale(scale);
+h_mJpsipi_final->Add(h_mJpsipi_sb, -1.0);
 // problem 5.1
 TH1D* h_mJpsi_combined = (TH1D*)h_mJpsi_e_afterChi2->Clone("h_mJpsi_combined");
 h_mJpsi_combined->Add(h_mJpsi_mu_afterChi2);
@@ -1471,6 +1540,66 @@ std::cout << "Tension = " << tension_mass << " sigma" << std::endl;
 // save
 c->SaveAs(savePath + "Jpsi_mass_final_combined_fit.png");
 }
+
+// problem 6.1
+{
+TCanvas* c = new TCanvas("c_jpsipi","c_jpsipi",1200,900);
+
+h_mJpsipi_sig->SetLineColor(kBlack);
+h_mJpsipi_sb->SetLineColor(kRed);
+
+h_mJpsipi_sig->Draw("HIST");
+h_mJpsipi_sb->Draw("HIST SAME");
+
+TLegend* leg = new TLegend(0.6,0.7,0.85,0.85);
+leg->AddEntry(h_mJpsipi_sig,"Signal window","l");
+leg->AddEntry(h_mJpsipi_sb,"Sideband","l");
+leg->Draw();
+
+c->SaveAs(savePath + "Jpsi_pi_signal_vs_sideband.png");
+}
+{
+TCanvas* c_zc = new TCanvas("c_zc","c_zc",1200,900);
+
+h_mJpsipi_max_final->Draw();
+
+// Gaussian + linear background
+TF1* ffit = new TF1(
+    "ffit",
+    "[0]*exp(-(x-[1])*(x-[1])/(2*[2]*[2])) + [3] + [4]*x",
+    3.8, 4.0
+);
+
+ffit->SetParameters(500, 3.88, 0.03, 50, -10);
+
+// constraints
+ffit->SetParLimits(2, 0.001, 0.2);
+ffit->SetParLimits(1, 3.85, 3.95);
+
+h_mJpsipi_max_final->Fit(ffit, "R");
+
+// ✅ ADD THESE TWO LINES
+double mass  = ffit->GetParameter(1);
+double width = ffit->GetParameter(2);
+
+// Zc yield
+// ===== COUNT Zc EVENTS FROM HISTOGRAM =====
+
+// choose peak region
+int b1 = h_mJpsipi_max_final->FindBin(3.85);
+int b2 = h_mJpsipi_max_final->FindBin(3.95);
+
+// integrate histogram
+N_Zc = h_mJpsipi_max_final->Integral(b1, b2);
+
+// print
+std::cout << "\n=== Zc(3900) ===" << std::endl;
+std::cout << "Mass = " << mass << std::endl;
+std::cout << "Width = " << width << std::endl;
+std::cout << "N_Zc = " << N_Zc << std::endl;
+
+c_zc->SaveAs(savePath + "Zc_fit.png");
+}
 // ================= SIGNAL EXTRACTION FROM HISTOGRAM =================
 
 int b1e = h_mJpsi_e_afterChi2->FindBin(3.05);
@@ -1483,6 +1612,25 @@ double N_Jpsi_mu = h_mJpsi_mu_afterChi2->Integral(b1m, b2m);
 
 std::cout << "N_Jpsi_e = " << N_Jpsi_e << std::endl;
 std::cout << "N_Jpsi_mu = " << N_Jpsi_mu << std::endl;
+// ================= R CALCULATION =================
+
+// total J/psi events
+double N_total = N_Jpsi_e + N_Jpsi_mu;
+
+// R = Zc / total
+double R = N_Zc / N_total;
+
+// uncertainties
+double err_N_Zc = sqrt(N_Zc);
+double err_N_total = sqrt(N_total);
+
+double err_R = R * sqrt(
+    (err_N_Zc/N_Zc)*(err_N_Zc/N_Zc) +
+    (err_N_total/N_total)*(err_N_total/N_total)
+);
+
+std::cout << "\n=== R VALUE ===" << std::endl;
+std::cout << "R = " << R << " ± " << err_R << std::endl;
 // ================= CROSS SECTION =================
 
 double L = 828.4; // pb^-1
