@@ -691,6 +691,7 @@ if (muonEvent)
 }// end of muon loop
 } // end of event loop
 
+
 // problem 6.1
 // ===== SIDEBAND SUBTRACTION =====
 double scale = 0.04 / 0.12;
@@ -723,6 +724,14 @@ h_mJpsipi_final->Add(h_mJpsipi_sb, -1.0);
 // problem 5.1
 TH1D* h_mJpsi_combined = (TH1D*)h_mJpsi_e_afterChi2->Clone("h_mJpsi_combined");
 h_mJpsi_combined->Add(h_mJpsi_mu_afterChi2);
+
+TFile* fout = new TFile(savePath + "output.root", "RECREATE");
+
+// save the important histograms
+h_mJpsipi_max_final->Write();
+h2_dalitz_final->Write();
+
+fout->Close();
         //=============================================================================
         // End of selection
         //=============================================================================
