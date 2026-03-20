@@ -297,6 +297,18 @@ TH1D* h_mJpsipi_max_sb = new TH1D(
     "Max M(J/#psi#pi) SB;M_{max};Events",
     200, 3.2, 4.5
 );
+// proble 6.4
+TH1D* h_m_pipi_sig = new TH1D(
+    "h_m_pipi_sig",
+    "M(#pi^{+}#pi^{-}) signal;M_{#pi#pi} [GeV];Events",
+    200, 0.2, 1.5
+);
+
+TH1D* h_m_pipi_sb = new TH1D(
+    "h_m_pipi_sb",
+    "M(#pi^{+}#pi^{-}) sideband;M_{#pi#pi} [GeV];Events",
+    200, 0.2, 1.5
+);
 //Problem 2.4
 double m_jpsi = 3.0969;  // Gev
 double m_pi = 0.13957;   // GeV
@@ -605,6 +617,8 @@ for (int i = 0; i < intNumberGoodPhotons; i++)
 double m2_pipi = pions.M2();
 double m2_jpsipi1 = (Jpsi + pi_plus).M2();
 double m2_jpsipi2 = (Jpsi + pi_minus).M2();
+// problem 6.4
+double m_pipi = pions.M();
 // problem 6.1
 double m_jpsipi1 = sqrt(m2_jpsipi1);
 double m_jpsipi2 = sqrt(m2_jpsipi2);
@@ -621,6 +635,7 @@ if (isSignal)
 
 if (isLeftSB || isRightSB)
     h_mJpsipi_max_sb->Fill(m_max);
+
 
 // fill inclusive (optional but useful)
 h_mJpsipi->Fill(m_jpsipi1);
@@ -639,8 +654,13 @@ if (isLeftSB || isRightSB)
     h_mJpsipi_sb->Fill(m_jpsipi1);
     h_mJpsipi_sb->Fill(m_jpsipi2);
 }
+// problem 6.4
+// ===== ππ MASS =====
+if (isSignal)
+    h_m_pipi_sig->Fill(m_pipi);
 
-
+if (isLeftSB || isRightSB)
+    h_m_pipi_sb->Fill(m_pipi);
 // ===== DALITZ WITH CORRECT AXIS ORIENTATION =====
 
 h2_dalitz->Fill(m2_jpsipi1, m2_pipi);
@@ -684,6 +704,7 @@ h_mJpsipi_max_final->Add(h_mJpsipi_max_sb, -1.0);
 
 TH2D* h2_dalitz_final = (TH2D*)h2_dalitz_sig->Clone("h2_dalitz_final");
 
+
 // scale sideband first
 h2_dalitz_sb->Scale(scale);
 
@@ -691,7 +712,12 @@ h2_dalitz_sb->Scale(scale);
 h2_dalitz_final->Add(h2_dalitz_sb, -1.0);
 // problem 6.1
 TH1D* h_mJpsipi_final = (TH1D*)h_mJpsipi_sig->Clone("h_mJpsipi_final");
+// problem 6.4
+TH1D* h_m_pipi_final =
+    (TH1D*)h_m_pipi_sig->Clone("h_m_pipi_final");
 
+h_m_pipi_sb->Scale(scale);
+h_m_pipi_final->Add(h_m_pipi_sb, -1.0);
 h_mJpsipi_sb->Scale(scale);
 h_mJpsipi_final->Add(h_mJpsipi_sb, -1.0);
 // problem 5.1
@@ -1599,6 +1625,15 @@ std::cout << "Width = " << width << std::endl;
 std::cout << "N_Zc = " << N_Zc << std::endl;
 
 c_zc->SaveAs(savePath + "Zc_fit.png");
+}
+// problem 6.4
+{
+TCanvas* c_pipi = new TCanvas("c_pipi","c_pipi",1200,900);
+
+h_m_pipi_final->SetLineColor(kBlack);
+h_m_pipi_final->Draw();
+
+c_pipi->SaveAs(savePath + "pipi_mass_subtracted.png");
 }
 // ================= SIGNAL EXTRACTION FROM HISTOGRAM =================
 
