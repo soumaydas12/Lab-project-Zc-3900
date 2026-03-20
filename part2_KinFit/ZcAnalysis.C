@@ -86,24 +86,23 @@ TH1D* h1_mJpsi_recoil = new TH1D(
 // problem 3.6
 TH2D* h2_dalitz = new TH2D(
 "h2_dalitz",
-"Dalitz plot; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
-80,0,1.5,
-80,9,18
+"Dalitz plot; M^{2}(#pi^{#pm}J/#psi) (GeV/c^{2})^{2}; M^{2}(#pi^{+}#pi^{-}) (GeV/c^{2})^{2}",
+80,9,18,
+80,0,1.5
 );
 
-// ===== NEW HISTOGRAMS =====
 TH2D* h2_dalitz_sig = new TH2D(
 "h2_dalitz_sig",
-"Dalitz (signal); m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
-80,0,1.5,
-80,9,18
+"Dalitz (signal); M^{2}(#pi^{#pm}J/#psi) (GeV/c^{2})^{2}; M^{2}(#pi^{+}#pi^{-}) (GeV/c^{2})^{2}",
+80,9,18,
+80,0,1.5
 );
 
 TH2D* h2_dalitz_sb = new TH2D(
 "h2_dalitz_sb",
-"Dalitz (sideband); m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
-80,0,1.5,
-80,9,18
+"Dalitz (sideband); M^{2}(#pi^{#pm}J/#psi) (GeV/c^{2})^{2}; M^{2}(#pi^{+}#pi^{-}) (GeV/c^{2})^{2}",
+80,9,18,
+80,0,1.5
 );
 // problem 4.1
 TH1D* h1_mJpsi_pipi = new TH1D(
@@ -509,40 +508,23 @@ bool isSignal  = (mll > 3.08 && mll < 3.12);
 bool isLeftSB  = (mll > 3.00 && mll < 3.06);
 bool isRightSB = (mll > 3.14 && mll < 3.20);
 
-// ALWAYS fill original
-h2_dalitz->Fill(m2_pipi, m2_jpsipi1);
-h2_dalitz->Fill(m2_pipi, m2_jpsipi2);
+// ===== DALITZ WITH CORRECT AXIS ORIENTATION =====
 
-// signal only
+h2_dalitz->Fill(m2_jpsipi1, m2_pipi);
+h2_dalitz->Fill(m2_jpsipi2, m2_pipi);
+
+// signal
 if (isSignal)
 {
-    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi1);
-    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi2);
+    h2_dalitz_sig->Fill(m2_jpsipi1, m2_pipi);
+    h2_dalitz_sig->Fill(m2_jpsipi2, m2_pipi);
 }
 
 // sidebands
 if (isLeftSB || isRightSB)
 {
-    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi1);
-    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi2);
-}
-
-// ALWAYS fill original Dalitz (for comparison)
-h2_dalitz->Fill(m2_pipi, m2_jpsipi1);
-h2_dalitz->Fill(m2_pipi, m2_jpsipi2);
-
-// signal-only
-if (isSignal)
-{
-    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi1);
-    h2_dalitz_sig->Fill(m2_pipi, m2_jpsipi2);
-}
-
-// sidebands
-if (isLeftSB || isRightSB)
-{
-    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi1);
-    h2_dalitz_sb->Fill(m2_pipi, m2_jpsipi2);
+    h2_dalitz_sb->Fill(m2_jpsipi1, m2_pipi);
+    h2_dalitz_sb->Fill(m2_jpsipi2, m2_pipi);
 }
     // // problem 3.0
    if (electronEvent)
@@ -773,9 +755,18 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 {
     TCanvas* canvas = new TCanvas("canvas","canvas",1200,900);
     canvas->SetLeftMargin(0.15);
+    canvas->SetRightMargin(0.15);
+    canvas->SetBottomMargin(0.15);
 
+    
     //  draw Dalitz histogram
     h2_dalitz->Draw("COLZ");
+    gPad->Update();
+    h2_dalitz->GetZaxis()->SetTitle("Events");
+    h2_dalitz->GetZaxis()->SetTitleSize(0.045);
+    h2_dalitz->GetZaxis()->SetLabelSize(0.035);
+
+    gPad->Modified();
     gPad->Update();
 
     double s = sqrt_s * sqrt_s;
@@ -817,7 +808,6 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
     dalitz_lower->SetLineWidth(3);
 
     
-
     dalitz_upper->Draw("same");
     dalitz_lower->Draw("same");
 
@@ -827,21 +817,47 @@ h1_mJpsi_recoil->Fit(ffit_voigt,"R");
 // ===== DEBUG: SIGNAL ONLY =====
 {
     TCanvas* c1 = new TCanvas("c_sig","c_sig",1200,900);
+    
     h2_dalitz_sig->Draw("COLZ");
+    gPad->Update();
+
+    h2_dalitz_sig->GetZaxis()->SetTitle("Events");
+    h2_dalitz_sig->GetZaxis()->SetTitleSize(0.045);
+    h2_dalitz_sig->GetZaxis()->SetLabelSize(0.035);
+    gPad->Modified();
+    gPad->Update();
     c1->SaveAs(savePath + "Dalitz_signal_only.png");
 }
 
 // ===== DEBUG: SIDEBAND ONLY =====
 {
     TCanvas* c2 = new TCanvas("c_sb","c_sb",1200,900);
+    
     h2_dalitz_sb->Draw("COLZ");
+    gPad->Update();
+
+    h2_dalitz_sb->GetZaxis()->SetTitle("Events");
+    h2_dalitz_sb->GetZaxis()->SetTitleSize(0.045);
+    h2_dalitz_sb->GetZaxis()->SetLabelSize(0.035);
+    gPad->Modified();
+    gPad->Update();
+
     c2->SaveAs(savePath + "Dalitz_sideband_only.png");
 }
 
 // ===== FINAL SUBTRACTED =====
 {
     TCanvas* c3 = new TCanvas("c_final","c_final",1200,900);
+   
+
     h2_dalitz_final->Draw("COLZ");
+    gPad->Update();
+
+    h2_dalitz_final->GetZaxis()->SetTitle("Events");
+    h2_dalitz_final->GetZaxis()->SetTitleSize(0.045);
+    h2_dalitz_final->GetZaxis()->SetLabelSize(0.035);
+    gPad->Modified();
+    gPad->Update();
     c3->SaveAs(savePath + "Dalitz_sideband_subtracted.png");
 }
 // problem 4.1
