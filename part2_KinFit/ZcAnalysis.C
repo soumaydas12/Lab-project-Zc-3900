@@ -87,23 +87,23 @@ TH1D* h1_mJpsi_recoil = new TH1D(
 TH2D* h2_dalitz = new TH2D(
 "h2_dalitz",
 "Dalitz plot; m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
-150,0,1.5,
-150,9,18
+80,0,1.5,
+80,9,18
 );
 
 // ===== NEW HISTOGRAMS =====
 TH2D* h2_dalitz_sig = new TH2D(
 "h2_dalitz_sig",
 "Dalitz (signal); m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
-150,0,1.5,
-150,9,18
+80,0,1.5,
+80,9,18
 );
 
 TH2D* h2_dalitz_sb = new TH2D(
 "h2_dalitz_sb",
 "Dalitz (sideband); m^{2}_{#pi^{+}#pi^{-}} [GeV^{2}]; m^{2}_{J/#psi #pi} [GeV^{2}]",
-150,0,1.5,
-150,9,18
+80,0,1.5,
+80,9,18
 );
 // problem 4.1
 TH1D* h1_mJpsi_pipi = new TH1D(
