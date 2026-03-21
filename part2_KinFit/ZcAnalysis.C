@@ -725,11 +725,14 @@ h_mJpsipi_final->Add(h_mJpsipi_sb, -1.0);
 TH1D* h_mJpsi_combined = (TH1D*)h_mJpsi_e_afterChi2->Clone("h_mJpsi_combined");
 h_mJpsi_combined->Add(h_mJpsi_mu_afterChi2);
 
+// ================= SAVE HISTOGRAMS =================
 TFile* fout = new TFile(savePath + "output.root", "RECREATE");
 
-// save the important histograms
+// save all needed histograms
 h_mJpsipi_max_final->Write();
 h2_dalitz_final->Write();
+h_mJpsipi_final->Write();
+h_m_pipi_final->Write();
 
 fout->Close();
         //=============================================================================

@@ -25,9 +25,9 @@ INPUT
 # Comment out the ones you don't need!
 #=============================================================================
 
-run "../NTuples/mc_pippimJpsi.root" "plots_pippimJpsi/" &
-run "../NTuples/data_4260.root" "plots_data/" &
-run "../NTuples/mc_pipmZc3900.root" "plots_pipmZc3900/" &
+run "../NTuples/mc_pippimJpsi.root" "plots_pippimJpsi/" 
+run "../NTuples/data_4260.root" "plots_data/" 
+run "../NTuples/mc_pipmZc3900.root" "plots_pipmZc3900/" 
 
 #=============================================================================
 # Wait for all "run" functions to finish
