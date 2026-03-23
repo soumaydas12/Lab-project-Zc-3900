@@ -730,7 +730,6 @@ TFile* fout = new TFile(savePath + "output.root", "RECREATE");
 
 // save all needed histograms
 h_mJpsipi_max_final->Write();
-h_mJpsipi_max_sb->Write();   // 
 h2_dalitz_final->Write();
 h_mJpsipi_final->Write();
 h_m_pipi_final->Write();
