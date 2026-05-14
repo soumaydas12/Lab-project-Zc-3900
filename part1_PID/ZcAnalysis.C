@@ -28,12 +28,12 @@ using ROOT::Math::VectorUtil::CosTheta; // angle between two four-vectors
 
 // decide which graphs should be plotted
 bool task_2_1 = false;
-bool task_2_2 = false;
+bool task_2_2 = true;
 bool task_2_3 = false;
 bool task_3_1_and_3_2 = false;
 bool task_3_3 = false;
-bool task_3_5 = true;
-bool task_3_6 = true;
+bool task_3_5 = false;
+bool task_3_6 = false;
 
 void ZcAnalysis::Loop(TString savePath)
 {
@@ -349,27 +349,31 @@ void ZcAnalysis::Loop(TString savePath)
     // TASK 2.2:
     if (task_2_2) {
         {
-        TCanvas* canvas = new TCanvas();
-        h2_eEMC->SetLineWidth(2);
-        gPad->SetLeftMargin(0.15);
-        gPad->SetBottomMargin(0.15);
-        h2_eEMC->GetYaxis()->SetTitleSize(0.05);
-        h2_eEMC->GetXaxis()->SetTitleSize(0.05);
-        double binWidth =  h1_pTracks->GetBinWidth(1);
-        h2_eEMC->GetYaxis()->SetTitle(Form("Events / %.3f GeV", binWidth));
-        h2_eEMC->Draw();
-        canvas->SaveAs(savePath + "2_EEMC_leptons.png");
-        }
-        {
-        TCanvas* canvas = new TCanvas();
-        h3_eEMC_vs_MUC->SetLineWidth(2);
-        gPad->SetLeftMargin(0.15);
-        gPad->SetRightMargin(0.15);
-        gPad->SetBottomMargin(0.15);
-        h3_eEMC_vs_MUC->GetYaxis()->SetTitleSize(0.05);
-        h3_eEMC_vs_MUC->GetXaxis()->SetTitleSize(0.05);
-        h3_eEMC_vs_MUC->Draw("COLZ");
-        canvas->SaveAs(savePath + "3_EEMC_vs_MUC.png");
+            TCanvas* canvas = new TCanvas();
+            h3_eEMC_vs_MUC->SetLineWidth(2);
+            
+            // Increase right margin to ensure the Z-axis title isn't cut off
+            gPad->SetLeftMargin(0.15);
+            gPad->SetRightMargin(0.20); 
+            gPad->SetBottomMargin(0.15);
+
+            h3_eEMC_vs_MUC->GetYaxis()->SetTitleSize(0.05);
+            h3_eEMC_vs_MUC->GetXaxis()->SetTitleSize(0.05);
+
+            // 1. Calculate bin widths for both axes
+            double dx = h3_eEMC_vs_MUC->GetXaxis()->GetBinWidth(1);
+            double dy = h3_eEMC_vs_MUC->GetYaxis()->GetBinWidth(1);
+
+            // 2. Set the Z-axis title
+            // Using #times for a mathematical 'x' symbol in ROOT LaTeX
+            h3_eEMC_vs_MUC->GetZaxis()->SetTitle(Form("Events / (%.3f GeV #times %.1f mm)", dx, dy));
+            h3_eEMC_vs_MUC->GetZaxis()->SetTitleSize(0.05);
+            
+            // 3. Adjust the offset so the title doesn't overlap the axis numbers
+            h3_eEMC_vs_MUC->GetZaxis()->SetTitleOffset(1.3); 
+
+            h3_eEMC_vs_MUC->Draw("COLZ");
+            canvas->SaveAs(savePath + "3_EEMC_vs_MUC.png");
         }
     }
 
