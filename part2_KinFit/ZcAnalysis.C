@@ -267,6 +267,13 @@ TH1D* h_mJpsi_recoil_afterChi2 = new TH1D(
 "J/#psi invariant mass after all selection cuts (recoil);Mass [GeV];Events",
 1000,0.0,3.5
 );
+
+TH1D* h_m_pipi_afterChi2 = new TH1D(
+"h_m_pipi_afterChi2",
+"#pi^{+}#pi^{-} invariant mass after all selection cuts;Mass [GeV];Events",
+1000,0.0,3.5
+);
+
 // problem 6.3
 // --- J/psi pi mass ---
 TH1D* h_mJpsipi = new TH1D(
@@ -595,6 +602,9 @@ if(muonEvent)
 P4E recoil_chi2 = pCMS - pions;
 
 h_mJpsi_recoil_afterChi2->Fill(recoil_chi2.M());
+
+h_m_pipi_afterChi2->Fill(pions.M());
+
 selectedEvents++;   
 
 
@@ -1348,32 +1358,37 @@ canvas_chi2->SetLeftMargin(0.15);
 TH1D* h_e_plot = (TH1D*)h_mJpsi_e_afterChi2->Clone("h_e_plot");
 TH1D* h_mu_plot = (TH1D*)h_mJpsi_mu_afterChi2->Clone("h_mu_plot");
 TH1D* h_recoil_plot = (TH1D*)h_mJpsi_recoil_afterChi2->Clone("h_recoil_plot");
+TH1D* h_pipi_plot = (TH1D*)h_m_pipi_afterChi2->Clone("h_pipi_plot"); // Cloned pions
 
 
 // ===== STYLE (APPLY TO CLONES) =====
-h_e_plot->SetLineColor(kRed);
-h_mu_plot->SetLineColor(kBlue);
-h_recoil_plot->SetLineColor(kGreen+2);
+h_e_plot->SetLineColor(kRed);          // Electrons -> Red
+h_mu_plot->SetLineColor(kBlue);        // Muons -> Blue
+h_pipi_plot->SetLineColor(kGreen+2);   // Pions -> Green
+h_recoil_plot->SetLineColor(kViolet);  // Recoil -> Purple/Violet
 
 h_e_plot->SetLineWidth(2);
 h_mu_plot->SetLineWidth(2);
+h_pipi_plot->SetLineWidth(2);
 h_recoil_plot->SetLineWidth(2);
 
 // ===== AXIS =====
 h_e_plot->GetYaxis()->SetTitle("Events");
-//h_e_plot->GetXaxis()->SetRangeUser(2.9, 3.2);
 
 // ===== SET MAX USING CLONES =====
 double max_e = h_e_plot->GetMaximum();
 double max_mu = h_mu_plot->GetMaximum();
 double max_recoil = h_recoil_plot->GetMaximum();
+double max_pipi = h_pipi_plot->GetMaximum();
 
-double max_all = std::max({max_e, max_mu, max_recoil});
+// Evaluate maximum of all 4 quantities
+double max_all = std::max({max_e, max_mu, max_recoil, max_pipi});
 h_e_plot->SetMaximum(1.2 * max_all);
 
 // ===== DRAW =====
 h_e_plot->Draw("HIST");
 h_mu_plot->Draw("HIST SAME");
+h_pipi_plot->Draw("HIST SAME");
 h_recoil_plot->Draw("HIST SAME");
 
 // ===== LEGEND =====
@@ -1383,6 +1398,7 @@ leg_chi2->SetFillStyle(0);
 
 leg_chi2->AddEntry(h_e_plot,"e^{+}e^{-}","l");
 leg_chi2->AddEntry(h_mu_plot,"#mu^{+}#mu^{-}","l");
+leg_chi2->AddEntry(h_pipi_plot,"#pi^{+}#pi^{-}","l");
 leg_chi2->AddEntry(h_recoil_plot,"Recoil(#pi^{+}#pi^{-})","l");
 
 leg_chi2->Draw();
